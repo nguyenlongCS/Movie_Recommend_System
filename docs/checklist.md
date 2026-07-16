@@ -36,13 +36,15 @@ Cập nhật lần cuối: sau khi hoàn tất **Bước 1 — Data Cleaning**
 
 ## Giai đoạn 2 — EDA
 
-- [ ] Phân bố rating (`ratings_clean`)
-- [ ] Phân bố thể loại phim
-- [ ] Phân bố số phim theo năm/thập niên
-- [ ] Phân bố `popularity`, `vote_average`, `vote_count`
-- [ ] Phân tích độ thưa (sparsity) của ma trận user-item
-- [ ] Phân bố số rating/user, số rating/phim → xác định ngưỡng lọc cho CF
-- [ ] Rút ra kết luận từ EDA để quyết định hướng Feature Engineering / Modeling
+- [x] Phân bố rating (`ratings_clean`) — mean 3.54, median 4.0, lệch phải
+- [x] Phân bố thể loại phim — Drama, Comedy, Thriller dẫn đầu
+- [x] Phân bố số phim theo năm — min 1874 (phim thử nghiệm có thật, không phải lỗi)
+- [x] Phân bố `popularity`, `vote_average`, `vote_count` — `vote_count` lệch mạnh (long-tail)
+- [x] Phân tích độ thưa (sparsity) của ma trận user-item — **98.36%**
+- [x] Phân bố số rating/user (min 20, mean 149), số rating/phim (median chỉ 3)
+- [x] Kiểm tra mapping `ratings.movieId` ↔ `movies.id` qua `links_small` — khớp 99.81%
+- [x] Xác định ngưỡng lọc cho CF: **≥ 5 rating/phim** (giữ 3,496 phim, 38.6%)
+- [x] Kết luận: dùng weighted rating (IMDb-style) thay vì `vote_average` thô cho mục ngẫu nhiên có chọn lọc
 
 ## Giai đoạn 3 — Feature Engineering
 

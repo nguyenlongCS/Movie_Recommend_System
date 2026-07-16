@@ -66,7 +66,41 @@ Cột: `userId`, `movieId`, `rating`, `timestamp`. Không có dòng trùng lặp
 
 > Lưu ý: `ratings_clean.csv` dùng `movieId` (MovieLens ID), khác với `id` (TMDb ID) trong `movies_clean.csv`. Cần dùng `links_small.csv` (`movieId ↔ tmdbId`) để map hai bảng này với nhau ở các bước sau (Collaborative Filtering, Hybrid).
 
-## 5. Việc còn lại trước khi vào Feature Engineering (EDA)
+## 5. Kết quả EDA (Bước 2)
 
-- Phân tích phân bố dữ liệu (genres, rating, năm phát hành...)
-- Phân tích độ thưa ma trận user-item để quyết định ngưỡng lọc cho Collaborative Filtering
+### Phân bố rating
+`mean = 3.54`, `median = 4.0`, thang điểm 0.5–5.0 — người dùng có xu hướng đánh giá cao hơn là thấp (lệch phải).
+
+### Phân bố thể loại (top 5)
+Drama (20,243) > Comedy (13,176) > Thriller (7,618) > Romance (6,730) > Action (6,590).
+
+### Năm phát hành
+`min = 1874`, `max = 2020`, `mean ≈ 1992`. Các phim rất cũ (< 1900) là phim thử nghiệm có thật thời kỳ đầu điện ảnh (Edison, Lumière...) — **không phải lỗi dữ liệu**, giữ nguyên.
+
+### Độ thưa ma trận User-Item (`ratings_small`)
+- Số user: 671 (mỗi user ≥ 20 rating — đúng thiết kế MovieLens-small)
+- Số phim có rating: 9,066 (nhưng median chỉ 3 rating/phim, 25% chỉ có 1 rating)
+- **Sparsity: 98.36%** — hiện tượng long-tail điển hình
+
+### Mapping giữa CF (ratings) và CB (movies)
+Qua `links_small` (`movieId ↔ tmdbId`): **99.81%** rating map được sang `movies_clean` (chỉ 71/100,004 rating không khớp). Content-Based và Collaborative Filtering dùng chung được gần như toàn bộ tập phim.
+
+### Ngưỡng lọc đã chọn cho Collaborative Filtering
+**≥ 5 rating/phim** → giữ lại 3,496 phim (38.6%). Lý do: loại bỏ phần lớn phim có 1-2 rating (similarity không đáng tin cậy) trong khi vẫn giữ đủ độ đa dạng để tránh cold-start quá nặng.
+
+### Quyết định về công thức đánh giá phim
+`vote_count` phân bố lệch mạnh (median=10, percentile 99%=2,184) → **không dùng `vote_average` thô** để xếp hạng phim ở mục "Có thể bạn sẽ bất ngờ", mà dùng **weighted rating kiểu IMDb**:
+
+```
+WR = (v / (v+m)) * R + (m / (v+m)) * C
+```
+- `v`: vote_count của phim
+- `m`: ngưỡng vote_count tối thiểu (đề xuất lấy percentile 75% ≈ 34)
+- `R`: vote_average của phim
+- `C`: vote_average trung bình toàn bộ dataset
+
+## 6. Việc còn lại trước khi vào Modeling
+
+- Feature Engineering: tạo metadata soup, vector hóa (TF-IDF/CountVectorizer), xây ma trận User-Item đã lọc theo ngưỡng ≥5 rating/phim
+- Modeling: Content-Based, Collaborative Filtering, Hybrid
+- Evaluation: Precision@K, Recall@K, RMSE/MAE
