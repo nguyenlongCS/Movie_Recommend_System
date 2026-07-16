@@ -48,11 +48,20 @@ Cập nhật lần cuối: sau khi hoàn tất **Bước 1 — Data Cleaning**
 
 ## Giai đoạn 3 — Feature Engineering
 
-- [ ] Tạo "metadata soup" (overview + genres + keywords + cast + director)
-- [ ] Thử nghiệm CountVectorizer vs TF-IDF
-- [ ] Thử nghiệm có/không Stemming (PorterStemmer)
-- [ ] Tính weighted rating (kiểu IMDb) cho fallback / mục "Có thể bạn sẽ bất ngờ"
-- [ ] Xây dựng ma trận user-item cho Collaborative Filtering (theo ngưỡng lọc từ EDA)
+- [x] Xử lý lỗi đọc lại CSV: `fillna('')` cho `director_clean`, `overview` (chuỗi rỗng bị đọc thành NaN)
+- [x] Tạo "metadata soup" (genres + keywords + cast + director×2 + overview)
+- [x] Kiểm tra độ dài soup — mean 64 từ, 25 phim (0.05%) có soup rỗng (chấp nhận được)
+- [x] Vector hóa: CountVectorizer và TF-IDF (max_features=5000, stop_words='english') — cả hai matrix (45429, 5000)
+- [x] Tính Weighted Rating (IMDb-style), C=5.618, m=34 (percentile 75% vote_count)
+  - Top 10 kiểm định hợp lý: Shawshank Redemption, Godfather, Dark Knight, Fight Club, Pulp Fiction...
+- [x] Xây ma trận User-Item cho CF (lọc ≥5 rating/phim): 90,015 ratings, 3,493 phim, 671 user
+- [x] Lưu artifact cho Modeling:
+  - `data/processed/movies_features.csv`
+  - `models_artifacts/tfidf_vectorizer.pkl`, `tfidf_matrix.pkl`
+  - `models_artifacts/count_vectorizer.pkl`, `count_matrix.pkl`
+  - `models_artifacts/user_item_matrix.pkl`
+- [ ] *(Chưa làm, để dành đánh giá ở Bước Evaluation)* So sánh chất lượng CountVectorizer vs TF-IDF
+- [ ] *(Chưa làm, tùy chọn)* Thử nghiệm Stemming (PorterStemmer) — có thể bổ sung nếu Evaluation cho thấy cần cải thiện
 
 ## Giai đoạn 4 — Modeling
 

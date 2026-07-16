@@ -99,8 +99,36 @@ WR = (v / (v+m)) * R + (m / (v+m)) * C
 - `R`: vote_average của phim
 - `C`: vote_average trung bình toàn bộ dataset
 
-## 6. Việc còn lại trước khi vào Modeling
+## 7. Kết quả Feature Engineering (Bước 3)
 
-- Feature Engineering: tạo metadata soup, vector hóa (TF-IDF/CountVectorizer), xây ma trận User-Item đã lọc theo ngưỡng ≥5 rating/phim
-- Modeling: Content-Based, Collaborative Filtering, Hybrid
-- Evaluation: Precision@K, Recall@K, RMSE/MAE
+### Lỗi phát sinh & cách khắc phục
+Khi đọc lại `movies_clean.csv`, các ô `director_clean` từng được điền chuỗi rỗng (`''`) bị pandas đọc thành `NaN` (kiểu `float`), gây lỗi khi nối chuỗi (`TypeError: expected str instance, float found`). Khắc phục bằng `fillna('')` ngay sau khi đọc lại CSV cho mọi cột từng chứa chuỗi rỗng.
+
+### Metadata soup
+Ghép `genres_clean + keywords_clean + cast_clean + director_clean×2 + overview` thành 1 chuỗi văn bản cho mỗi phim (trọng số đạo diễn nhân đôi). Độ dài trung bình 64 từ/phim; **25 phim (0.05%)** có soup hoàn toàn rỗng (thiếu toàn bộ metadata) — chấp nhận được, số lượng không đáng kể.
+
+### Vector hóa
+Cả `CountVectorizer` và `TfidfVectorizer` (`max_features=5000`, `stop_words='english'`) đều cho ma trận `(45429, 5000)`. Sẽ so sánh chất lượng giữa hai phương án ở bước Evaluation, chưa chọn phương án cuối cùng.
+
+### Weighted Rating (IMDb-style)
+`C = 5.618` (vote_average trung bình), `m = 34` (percentile 75% của vote_count). Top phim theo weighted rating cho kết quả hợp lý (Shawshank Redemption, The Godfather, The Dark Knight, Fight Club, Pulp Fiction, Schindler's List...) — xác nhận công thức hoạt động đúng, tránh được thiên lệch do phim ít vote nhưng điểm ảo cao.
+
+### Ma trận User-Item (cho Collaborative Filtering)
+Sau khi map `ratings.movieId → tmdbId` (qua `links_small`) và lọc theo ngưỡng ≥5 rating/phim:
+- Ratings trước lọc: 99,933 (đã loại 71 dòng không map được `tmdbId`)
+- Ratings sau lọc: 90,015
+- Số phim: 3,493 | Số user: 671
+- Shape ma trận: `(671, 3493)`
+
+### Artifact đã lưu (dùng lại cho Modeling — không cần tính lại)
+| File | Vị trí | Nội dung |
+|---|---|---|
+| `movies_features.csv` | `data/processed/` | id, title, soup, weighted_rating, vote_average, vote_count, popularity, release_year, poster_path |
+| `tfidf_vectorizer.pkl`, `tfidf_matrix.pkl` | `models_artifacts/` | Vectorizer và ma trận TF-IDF |
+| `count_vectorizer.pkl`, `count_matrix.pkl` | `models_artifacts/` | Vectorizer và ma trận CountVectorizer |
+| `user_item_matrix.pkl` | `models_artifacts/` | Ma trận User-Item cho CF |
+
+## 8. Việc còn lại trước khi vào Modeling
+
+- Modeling: Content-Based (cosine similarity), Collaborative Filtering (KNN/SVD), Hybrid
+- Evaluation: so sánh CountVectorizer vs TF-IDF, Precision@K, Recall@K, RMSE/MAE
