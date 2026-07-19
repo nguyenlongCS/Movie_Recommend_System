@@ -1,6 +1,6 @@
 # Roadmap — Movie Recommender System
 
-Trạng thái hiện tại: **Đã hoàn thành Giai đoạn 1–3 / 8**
+Trạng thái hiện tại: **Đã hoàn thành Giai đoạn 1–4 / 8**
 
 ## Tổng quan các giai đoạn
 
@@ -9,8 +9,8 @@ Trạng thái hiện tại: **Đã hoàn thành Giai đoạn 1–3 / 8**
 | 1 | Data Cleaning | ✅ Hoàn thành | Đọc, merge, xử lý thiếu/trùng, parse JSON, chuẩn hóa chuỗi |
 | 2 | EDA | ✅ Hoàn thành | Phân bố dữ liệu, sparsity, ngưỡng lọc cho CF |
 | 3 | Feature Engineering | ✅ Hoàn thành | Metadata soup, vector hóa, weighted rating, ma trận User-Item |
-| 4 | Modeling | ⏳ Tiếp theo | Content-Based, Collaborative Filtering, Hybrid |
-| 5 | Evaluation | ⬜ Chưa bắt đầu | Precision@K, Recall@K, RMSE/MAE, so sánh phương pháp |
+| 4 | Modeling | ✅ Hoàn thành | Content-Based, Collaborative Filtering, Hybrid |
+| 5 | Evaluation | ⏳ Tiếp theo | Precision@K, Recall@K, RMSE/MAE, so sánh phương pháp |
 | 6 | SQLite & lưu hành vi người dùng | ⬜ Chưa bắt đầu | Schema, logic Play/Like/Dislike |
 | 7 | Ứng dụng Streamlit | ⬜ Chưa bắt đầu | Giao diện, thẻ phim, kết nối logic gợi ý |
 | 8 | Hoàn thiện | ⬜ Chưa bắt đầu | Biểu đồ (tương lai), README báo cáo |
@@ -20,26 +20,21 @@ Chi tiết dữ liệu và các quyết định kỹ thuật: xem `docs/dataset.
 
 ---
 
-## Giai đoạn 4 — Modeling (kế hoạch chi tiết, sắp thực hiện)
+## Giai đoạn 4 — Modeling (đã hoàn thành)
 
-### 4.1. Content-Based Filtering
-- Tính cosine similarity trên ma trận TF-IDF (và/hoặc CountVectorizer) đã lưu ở `models_artifacts/`
-- Xây hàm gợi ý: nhập 1 phim → trả về top-N phim tương tự nhất
-- Phục vụ mục **"Vì bạn thích ..."**
+### 4.1. Content-Based Filtering ✅
+- Cosine similarity on-demand trên ma trận TF-IDF
+- Candidate pool giới hạn `vote_count ≥ 10` (khắc phục lỗi similarity ảo với phim ít dữ liệu)
 
-### 4.2. Collaborative Filtering
-- Dùng ma trận User-Item đã lọc (`user_item_matrix.pkl`)
-- Áp dụng Item-based KNN (`sklearn.neighbors.NearestNeighbors`) hoặc giảm chiều bằng `TruncatedSVD`
-- Xây hàm gợi ý: nhập userId → trả về top-N phim được user tương tự đánh giá cao
-- Phục vụ mục **"Người giống bạn đang xem"**
+### 4.2. Collaborative Filtering ✅
+- User-based KNN (cosine) trên ma trận User-Item đã lọc
+- Xử lý cold-start
 
-### 4.3. Hybrid
-- Công thức: `score = α * CB_score + β * CF_score`
-- `α`, `β` điều chỉnh theo lượng dữ liệu user đã có (user mới/ít dữ liệu → nghiêng về CB nhiều hơn)
-- Phục vụ mục **"Phim dành riêng cho bạn"**
+### 4.3. Hybrid ✅
+- `hybrid_score = α·CB_norm + β·CF_norm`, trọng số động theo lượng dữ liệu user
+- Ghi chú: cần điều chỉnh lại nguồn `liked_tmdb_ids` khi tích hợp SQLite ở Giai đoạn 7
 
-### 4.4. Lưu model
-- Lưu toàn bộ artifact vào `models_artifacts/` (`.pkl`) để ứng dụng Streamlit dùng lại, không train lại mỗi lần chạy
+Chi tiết đầy đủ: xem mục 8 trong `docs/dataset.md`.
 
 ---
 

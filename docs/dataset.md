@@ -128,7 +128,50 @@ Sau khi map `ratings.movieId → tmdbId` (qua `links_small`) và lọc theo ngư
 | `count_vectorizer.pkl`, `count_matrix.pkl` | `models_artifacts/` | Vectorizer và ma trận CountVectorizer |
 | `user_item_matrix.pkl` | `models_artifacts/` | Ma trận User-Item cho CF |
 
-## 8. Việc còn lại trước khi vào Modeling
+## 8. Kết quả Modeling (Giai đoạn 4)
 
-- Modeling: Content-Based (cosine similarity), Collaborative Filtering (KNN/SVD), Hybrid
-- Evaluation: so sánh CountVectorizer vs TF-IDF, Precision@K, Recall@K, RMSE/MAE
+### 4.1. Content-Based Filtering
+Tính cosine similarity **on-demand** (1 phim với toàn bộ tập, không lưu ma trận đầy đủ 45429×45429 — sẽ tốn ~16GB RAM).
+
+**Lỗi phát hiện & khắc phục:** phim có `soup` cực ngắn (chỉ 5-6 từ, VD chỉ có 1 genre + tên diễn viên hiếm gặp) và `vote_count ≈ 0` bị TF-IDF cosine similarity thổi phồng điểm giả tạo (do chuẩn hóa vector ngắn khiến trọng số từ chung bị phóng đại). Khắc phục bằng cách giới hạn **candidate pool** — chỉ đề xuất trong số phim có `vote_count ≥ 10` (còn 22,915/45,429 phim đủ điều kiện).
+
+Kiểm định định tính sau khi sửa: *The Godfather* → đúng phần 2, phần 3 + phim mafia khác; *La La Land* → đúng phim nhạc jazz + phim đầu tay của cùng đạo diễn (Guy and Madeline on a Park Bench). *Toy Story* chấp nhận được. *Inception* là giới hạn đã biết của bag-of-words (không bắt được ngữ nghĩa trừu tượng như "giấc mơ lồng nhau") — chấp nhận cho phạm vi project đơn giản.
+
+Thời gian: ~0.046s/lần.
+
+### 4.2. Collaborative Filtering
+User-based CF dùng `NearestNeighbors` (cosine similarity) trên ma trận User-Item đã lọc (671 user × 3,493 phim từ Bước 3).
+
+Kiểm định định tính trên 4 user cho kết quả rất nhất quán theo cụm gu xem phim — VD user 300 nhận toàn LOTR (3 phần) + Empire Strikes Back + Sixth Sense (cụm sci-fi/fantasy rõ rệt), xác nhận thuật toán bắt đúng pattern hành vi.
+
+Xử lý đúng cold-start (user không có trong ma trận → trả về rỗng kèm cảnh báo).
+
+**Lưu ý kỹ thuật:** `cf_score` không map trực tiếp thang rating gốc 0.5–5.0, do công thức trung bình có trọng số tính trên toàn bộ k-neighbor kể cả neighbor chưa rate phim đó (đóng góp 0). Điểm này chỉ dùng để **xếp hạng nội bộ** (top-N vẫn chính xác), không nên hiển thị trực tiếp cho người dùng như "điểm dự đoán".
+
+Thời gian: ~0.068s/lần.
+
+### 4.3. Hybrid
+Công thức: `hybrid_score = α·CB_norm + β·CF_norm` (CB và CF được chuẩn hóa min-max về [0,1] trước khi cộng, vì thang giá trị gốc khác nhau hoàn toàn).
+
+Trọng số động theo lượng dữ liệu user: `α = max(0.2, 1 - n_ratings/50)`, `β = 1 - α`. Đã kiểm định α/β thay đổi đúng công thức (user 20 rating → α=0.6; user 100 rating → α=0.2 chạm sàn).
+
+Kết quả pha trộn có ý nghĩa thực sự — không chỉ đơn thuần "copy" CF khi β lớn: khi α đủ cao, CB điều chỉnh thứ hạng theo nội dung phim (VD user 1 với α=0.6, Pulp Fiction chen vào top-5 nhờ tín hiệu nội dung mạnh).
+
+**Ghi chú thiết kế quan trọng cho Giai đoạn 7:** hàm hiện tại lấy "phim đã thích" từ `user_item_matrix` (rating ≥ 4 trong MovieLens) — chỉ phù hợp để **kiểm định thuật toán**. Trong ứng dụng thực tế, cần sửa hàm để nhận `liked_tmdb_ids` từ bảng `liked` trong SQLite làm tham số, vì user thật của app sẽ không nằm trong tập MovieLens có sẵn.
+
+Xử lý đúng cold-start hoàn toàn (không có CF lẫn phim đã thích). Thời gian: ~0.083s/lần.
+
+### Artifact đã lưu thêm ở Giai đoạn 4
+| File | Nội dung |
+|---|---|
+| `content_based_candidate_indices.pkl` | Danh sách index các phim đủ điều kiện làm candidate (vote_count≥10) |
+| `title_indices.pkl` | Index tra cứu nhanh vị trí phim theo title |
+| `user_knn_model.pkl` | Mô hình KNN đã fit trên ma trận User-Item |
+| `movies_id_to_pos.pkl` | Map nhanh từ `tmdbId` sang vị trí dòng trong `movies_features.csv` |
+
+## 9. Việc còn lại trước khi vào Evaluation
+
+- Tách train/test trên `ratings_clean.csv`
+- Tính RMSE/MAE cho CF, Precision@K/Recall@K cho cả 3 phương pháp
+- So sánh CountVectorizer vs TF-IDF (quyết định treo lại từ Bước 3)
+- Tính Coverage, Diversity

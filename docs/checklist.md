@@ -1,6 +1,6 @@
 # Checklist — Movie Recommender System
 
-Cập nhật lần cuối: sau khi hoàn tất **Bước 1 — Data Cleaning**
+Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 4 — Modeling** (Content-Based, Collaborative Filtering, Hybrid)
 
 ---
 
@@ -65,10 +65,29 @@ Cập nhật lần cuối: sau khi hoàn tất **Bước 1 — Data Cleaning**
 
 ## Giai đoạn 4 — Modeling
 
-- [ ] Content-Based: cosine similarity trên TF-IDF/CountVectorizer matrix
-- [ ] Collaborative Filtering: Item-based KNN hoặc TruncatedSVD
-- [ ] Hybrid: công thức kết hợp có trọng số (α*CB + β*CF)
-- [ ] Lưu model/artifact (`.pkl`) vào `models_artifacts/`
+### 4.1. Content-Based Filtering
+- [x] Tính cosine similarity on-demand (không lưu ma trận đầy đủ 45429×45429 — tốn ~16GB RAM)
+- [x] Phát hiện & sửa lỗi nghiêm trọng: phim có soup cực ngắn (vote_count≈0) bị TF-IDF thổi phồng similarity giả tạo
+  → Khắc phục: giới hạn candidate pool theo `vote_count >= 10` (còn 22,915/45,429 phim đủ điều kiện được đề xuất)
+- [x] Kiểm định định tính: The Godfather, La La Land cho kết quả rất tốt; Toy Story chấp nhận được;
+      Inception là giới hạn đã biết của bag-of-words (không bắt được ngữ nghĩa trừu tượng)
+- [x] Thời gian chạy: ~0.046s/lần — đủ nhanh cho web app
+- [x] Lưu artifact: `content_based_candidate_indices.pkl`, `title_indices.pkl`
+
+### 4.2. Collaborative Filtering
+- [x] User-based CF bằng `NearestNeighbors` (cosine) trên ma trận User-Item đã lọc (671 user × 3493 phim)
+- [x] Kiểm định định tính trên 4 user: kết quả nhất quán theo cụm gu xem phim (VD user 300 ra toàn LOTR + sci-fi kinh điển)
+- [x] Xử lý cold-start (user không có trong ma trận) — trả về rỗng kèm cảnh báo
+- [x] Ghi chú: `cf_score` không map trực tiếp thang 0.5–5.0 (bị pha loãng bởi neighbor chưa rate) — chỉ dùng để xếp hạng nội bộ, không hiển thị trực tiếp cho người dùng
+- [x] Thời gian chạy: ~0.068s/lần
+- [x] Lưu artifact: `user_knn_model.pkl`
+
+### 4.3. Hybrid
+- [x] Công thức: `hybrid_score = α·CB_norm + β·CF_norm`, chuẩn hóa min-max trước khi cộng
+- [x] Trọng số động: `α = max(0.2, 1 - n_ratings/50)`, `β = 1-α` — user càng nhiều rating càng nghiêng về CF
+- [x] Kiểm định: kết quả Hybrid thực sự pha trộn có ý nghĩa (không chỉ copy CF khi β lớn — CB vẫn điều chỉnh thứ hạng khi tín hiệu nội dung đủ mạnh, VD Empire Strikes Back được đẩy hạng nhờ cb_score cao)
+- [x] Xử lý cold-start hoàn toàn (không có CF lẫn phim đã thích) — trả về rỗng kèm cảnh báo
+- [x] Thời gian chạy: ~0.083s/lần
 
 ## Giai đoạn 5 — Evaluation
 
