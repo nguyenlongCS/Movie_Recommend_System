@@ -1,6 +1,6 @@
 # Checklist — Movie Recommender System
 
-Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 4 — Modeling** (Content-Based, Collaborative Filtering, Hybrid)
+Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 5 — Evaluation**
 
 ---
 
@@ -91,11 +91,18 @@ Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 4 — Modeling** (
 
 ## Giai đoạn 5 — Evaluation
 
-- [ ] Tách train/test
-- [ ] Tính RMSE/MAE (CF)
-- [ ] Tính Precision@K, Recall@K (CB, CF, Hybrid)
-- [ ] Tính Coverage, Diversity
-- [ ] So sánh và kết luận phương pháp phù hợp cho từng mục gợi ý
+- [x] Tách train/test theo từng user (80/20), xử lý lỗi `groupby().apply()` bằng cách tiếp cận vector hóa
+- [x] Dựng lại `train_matrix` + fit lại KNN chỉ trên train (tránh rò rỉ dữ liệu test)
+- [x] Xây hàm dự đoán rating riêng cho RMSE/MAE (khác hàm xếp hạng top-N ở Giai đoạn 4)
+- [x] Tính RMSE/MAE cho CF — phát hiện v1 (rating thô) thua cả baseline user-mean
+  → Sửa thành **CF v2 (mean-centered)**, cải thiện rõ rệt: RMSE 1.0474→0.9818, MAE 0.8027→0.7455
+  → **Chốt dùng CF v2 làm phiên bản chính thức** (cần cập nhật lại hàm ở Giai đoạn 4.2/4.3 khi triển khai app)
+- [x] Precision@5 / Recall@5 cho CB, CF, Hybrid + baseline (popularity)
+  → Phát hiện & sửa lỗi so sánh không công bằng (CB dùng candidate pool 22,915 phim trong khi CF chỉ 3,493) → giới hạn lại candidate pool CB về giao với tập CF (3,459 phim)
+  → Kết quả: CF=0.2224, **Hybrid=0.2341 (tốt nhất)**, CB=0.0280, Baseline=0.0482
+- [x] Coverage@5 (200 user mẫu): CB=0.1223 (đa dạng nhất), CF=0.0671, Hybrid=0.0752
+- [x] So sánh CountVectorizer vs TF-IDF: TF-IDF thắng rõ rệt (0.0280 vs 0.0108)
+  → **Chốt dùng TF-IDF** làm vectorizer chính thức, không dùng CountVectorizer trong app thực tế
 
 ## Giai đoạn 6 — SQLite & lưu hành vi người dùng
 

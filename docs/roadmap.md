@@ -1,6 +1,6 @@
 # Roadmap — Movie Recommender System
 
-Trạng thái hiện tại: **Đã hoàn thành Giai đoạn 1–4 / 8**
+Trạng thái hiện tại: **Đã hoàn thành Giai đoạn 1–5 / 8**
 
 ## Tổng quan các giai đoạn
 
@@ -10,8 +10,8 @@ Trạng thái hiện tại: **Đã hoàn thành Giai đoạn 1–4 / 8**
 | 2 | EDA | ✅ Hoàn thành | Phân bố dữ liệu, sparsity, ngưỡng lọc cho CF |
 | 3 | Feature Engineering | ✅ Hoàn thành | Metadata soup, vector hóa, weighted rating, ma trận User-Item |
 | 4 | Modeling | ✅ Hoàn thành | Content-Based, Collaborative Filtering, Hybrid |
-| 5 | Evaluation | ⏳ Tiếp theo | Precision@K, Recall@K, RMSE/MAE, so sánh phương pháp |
-| 6 | SQLite & lưu hành vi người dùng | ⬜ Chưa bắt đầu | Schema, logic Play/Like/Dislike |
+| 5 | Evaluation | ✅ Hoàn thành | RMSE/MAE, Precision@K/Recall@K, Coverage, so sánh vectorizer |
+| 6 | SQLite & lưu hành vi người dùng | ⏳ Tiếp theo | Schema, logic Play/Like/Dislike |
 | 7 | Ứng dụng Streamlit | ⬜ Chưa bắt đầu | Giao diện, thẻ phim, kết nối logic gợi ý |
 | 8 | Hoàn thiện | ⬜ Chưa bắt đầu | Biểu đồ (tương lai), README báo cáo |
 
@@ -20,21 +20,20 @@ Chi tiết dữ liệu và các quyết định kỹ thuật: xem `docs/dataset.
 
 ---
 
-## Giai đoạn 4 — Modeling (đã hoàn thành)
+## Giai đoạn 5 — Evaluation (đã hoàn thành)
 
-### 4.1. Content-Based Filtering ✅
-- Cosine similarity on-demand trên ma trận TF-IDF
-- Candidate pool giới hạn `vote_count ≥ 10` (khắc phục lỗi similarity ảo với phim ít dữ liệu)
+- RMSE/MAE: phát hiện CF v1 thua baseline → sửa bằng mean-centering (CF v2), chốt dùng v2
+- Precision@5/Recall@5: Hybrid (0.2341) > CF (0.2224) > Baseline (0.0482) > CB (0.0280) — xác nhận giá trị định lượng của Hybrid
+- Coverage@5: CB đa dạng nhất (0.1223), CF thấp nhất do popularity bias (0.0671)
+- TF-IDF thắng CountVectorizer rõ rệt (0.0280 vs 0.0108) — chốt dùng TF-IDF
 
-### 4.2. Collaborative Filtering ✅
-- User-based KNN (cosine) trên ma trận User-Item đã lọc
-- Xử lý cold-start
+Chi tiết đầy đủ: xem mục 10 trong `docs/dataset.md`.
 
-### 4.3. Hybrid ✅
-- `hybrid_score = α·CB_norm + β·CF_norm`, trọng số động theo lượng dữ liệu user
-- Ghi chú: cần điều chỉnh lại nguồn `liked_tmdb_ids` khi tích hợp SQLite ở Giai đoạn 7
+## Việc cần mang sang Giai đoạn 6-7 (quan trọng)
 
-Chi tiết đầy đủ: xem mục 8 trong `docs/dataset.md`.
+- Cập nhật hàm CF dùng **mean-centering (v2)** thay vì bản v1 gốc ở Giai đoạn 4
+- Sửa hàm Hybrid nhận `liked_tmdb_ids` từ SQLite (bảng `liked`) thay vì suy ra từ `user_item_matrix`
+- Dùng **TF-IDF** (không dùng CountVectorizer) cho Content-Based/Hybrid trong app
 
 ---
 

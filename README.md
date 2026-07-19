@@ -4,7 +4,7 @@ Hệ thống gợi ý phim đơn giản, tập trung vào quy trình **Data Mini
 
 ## Trạng thái hiện tại
 
-✅ Data Cleaning · ✅ EDA · ✅ Feature Engineering · ⏳ Modeling (tiếp theo)
+✅ Data Cleaning · ✅ EDA · ✅ Feature Engineering · ✅ Modeling · ✅ Evaluation · ⏳ SQLite (tiếp theo)
 
 Xem chi tiết tiến độ tại [`docs/checklist.md`](docs/checklist.md) và kế hoạch tổng thể tại [`docs/roadmap.md`](docs/roadmap.md).
 
@@ -56,6 +56,6 @@ movie-recommender/
 | File | Nội dung |
 |---|---|
 | [`docs/checklist.md`](docs/checklist.md) | Việc đã/chưa làm, cập nhật theo từng bước |
-| [`docs/dataset.md`](docs/dataset.md) | Mô tả dataset, các vấn đề dữ liệu, kết quả EDA & Feature Engineering |
+| [`docs/dataset.md`](docs/dataset.md) | Mô tả dataset, các vấn đề dữ liệu, kết quả EDA, Feature Engineering, Modeling & Evaluation |
 | [`docs/roadmap.md`](docs/roadmap.md) | Kế hoạch thực hiện theo từng giai đoạn |
 | [`docs/setup.md`](docs/setup.md) | Hướng dẫn cài đặt, thứ tự chạy notebook, lưu ý kỹ thuật |

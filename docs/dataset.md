@@ -169,9 +169,63 @@ Xử lý đúng cold-start hoàn toàn (không có CF lẫn phim đã thích). T
 | `user_knn_model.pkl` | Mô hình KNN đã fit trên ma trận User-Item |
 | `movies_id_to_pos.pkl` | Map nhanh từ `tmdbId` sang vị trí dòng trong `movies_features.csv` |
 
-## 9. Việc còn lại trước khi vào Evaluation
+## 10. Kết quả Evaluation (Giai đoạn 5)
 
-- Tách train/test trên `ratings_clean.csv`
-- Tính RMSE/MAE cho CF, Precision@K/Recall@K cho cả 3 phương pháp
-- So sánh CountVectorizer vs TF-IDF (quyết định treo lại từ Bước 3)
-- Tính Coverage, Diversity
+### Tách train/test
+80/20 theo từng user (72,279 train / 17,736 test), toàn bộ 671 user có mặt trong test.
+
+### RMSE/MAE — Rating Prediction (Collaborative Filtering)
+
+| Phương pháp | RMSE | MAE |
+|---|---|---|
+| Baseline: global mean | 1.0390 | 0.8374 |
+| Baseline: user mean | 0.9543 | 0.7443 |
+| CF v1 (rating thô, không mean-centering) | 1.0474 ❌ (thua cả baseline) | 0.8027 |
+| **CF v2 (mean-centered)** | **0.9818** | **0.7455** |
+
+**Phát hiện quan trọng:** CF v1 (trung bình có trọng số trên rating thô) thua cả baseline "đoán bằng trung bình của chính user" — nguyên nhân do không tách được "tông chấm điểm" riêng của từng user. Khắc phục bằng **mean-centering** (dự đoán = trung bình user + độ lệch có trọng số từ neighbor), cải thiện rõ rệt nhưng vẫn xấp xỉ baseline user-mean.
+
+**Kết luận trung thực:** đây là giới hạn đã biết của User-based KNN cơ bản trên dataset nhỏ, thưa (sparsity 98.36%) — phù hợp với ghi nhận trong tài liệu học thuật, không phải lỗi triển khai. Không đầu tư thêm kỹ thuật phức tạp hơn (shrinkage, regularization) vì ngoài phạm vi project "đơn giản, không phức tạp". **Chốt dùng CF v2** làm phiên bản chính thức.
+
+### Precision@5 / Recall@5 — Top-N Recommendation Quality
+
+| Phương pháp | Precision@5 | Recall@5 |
+|---|---|---|
+| Baseline (popularity, không cá nhân hóa) | 0.0482 | 0.0227 |
+| Content-Based (TF-IDF) | 0.0280 | 0.0146 |
+| Collaborative Filtering | 0.2224 | 0.1254 |
+| **Hybrid** | **0.2341** | **0.1261** |
+
+**Phát hiện & sửa lỗi quan trọng:** lần đánh giá CB đầu tiên cho kết quả rất thấp (0.0065) — nguyên nhân là so sánh không công bằng: CB dùng candidate pool 22,915 phim trong khi CF chỉ hoạt động trên 3,493 phim (tập phim có rating), khiến "đáp án đúng" bị pha loãng cho CB. Sau khi giới hạn candidate pool CB về đúng phạm vi 3,459 phim giao với CF, kết quả tăng lên 0.0280 — hợp lý và có thể so sánh công bằng.
+
+**Kết luận:** 
+- **Hybrid vượt cả CF thuần lẫn CB thuần** — xác nhận định lượng giá trị của việc kết hợp 2 phương pháp (không chỉ là lý thuyết).
+- CB có precision thấp hơn nhiều so với CF vì không tận dụng được tín hiệu hành vi tập thể — đây là **đặc điểm bản chất**, phù hợp cho mục đích khác (gợi ý "giống phim đã thích", không phải tối đa hóa độ chính xác dự đoán hành vi).
+
+### Coverage@5 (đo trên mẫu 200 user)
+
+| Phương pháp | Coverage@5 |
+|---|---|
+| **Content-Based** | **0.1223** (đa dạng nhất) |
+| Hybrid | 0.0752 |
+| Collaborative Filtering | 0.0671 (thấp nhất — "popularity bias") |
+
+CF có độ phủ catalog thấp nhất — hiện tượng **popularity bias** đã biết trong hệ gợi ý (CF thiên về đề xuất lặp lại nhóm phim trung tâm mạng lưới, được nhiều user rate). CB đa dạng hơn nhờ dựa vào đặc trưng nội dung riêng từng phim.
+
+➡️ **Ý nghĩa cho thiết kế UI:** CF/Hybrid phù hợp cho các mục cần độ chính xác cao (*"Phim dành riêng cho bạn"*, *"Người giống bạn đang xem"*); CB phù hợp cho mục cần khám phá đa dạng (*"Có thể bạn sẽ bất ngờ"*, *"Vì bạn thích..."*) — đúng tinh thần thiết kế 6 mục gợi ý ban đầu.
+
+### So sánh CountVectorizer vs TF-IDF (giải quyết việc treo từ Bước 3)
+
+| Vectorizer | Precision@5 |
+|---|---|
+| CountVectorizer | 0.0108 |
+| **TF-IDF** | **0.0280** (gấp 2.6 lần) |
+
+**Chốt dùng TF-IDF** làm vectorizer chính thức cho Content-Based/Hybrid. `count_matrix.pkl`/`count_vectorizer.pkl` vẫn giữ lại trong `models_artifacts/` nhưng không dùng trong pipeline chính thức.
+
+## 11. Việc còn lại trước khi vào SQLite & App (Giai đoạn 6-7)
+
+- Cập nhật lại hàm CF ở Giai đoạn 4.2/4.3 dùng **mean-centering (v2)** thay vì bản v1 ban đầu
+- Thiết kế schema SQLite (`users`, `movies`, `watched`, `liked`, `disliked`)
+- Sửa hàm Hybrid để nhận `liked_tmdb_ids` từ SQLite thay vì tự suy ra từ `user_item_matrix` (đã ghi chú từ Giai đoạn 4.3)
+- Xây dựng ứng dụng Streamlit, kết nối logic gợi ý cho 6 mục
