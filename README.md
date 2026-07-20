@@ -4,7 +4,7 @@ Hệ thống gợi ý phim đơn giản, tập trung vào quy trình **Data Mini
 
 ## Trạng thái hiện tại
 
-✅ Data Cleaning · ✅ EDA · ✅ Feature Engineering · ✅ Modeling · ✅ Evaluation · ⏳ SQLite (tiếp theo)
+✅ Data Cleaning · ✅ EDA · ✅ Feature Engineering · ✅ Modeling · ✅ Evaluation · ✅ SQLite · ⏳ Streamlit App (tiếp theo)
 
 Xem chi tiết tiến độ tại [`docs/checklist.md`](docs/checklist.md) và kế hoạch tổng thể tại [`docs/roadmap.md`](docs/roadmap.md).
 

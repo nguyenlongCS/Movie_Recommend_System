@@ -71,6 +71,8 @@ Chạy tuần tự theo đúng thứ tự (mỗi notebook đọc output đã lư
 - **Collaborative Filtering cần mean-centering**: dự đoán rating trực tiếp bằng trung bình có trọng số trên rating thô (không trừ độ lệch trung bình từng user) cho kết quả RMSE **tệ hơn cả baseline đơn giản** (đoán bằng trung bình của chính user). Công thức đúng: `dự đoán = trung bình(user) + Σ(similarity × (rating_neighbor − trung bình(neighbor))) / Σ(similarity)`.
 - Khi so sánh Precision@K/Recall@K giữa các phương pháp, phải đảm bảo **candidate pool giống nhau** giữa các phương pháp — so sánh CB (toàn bộ catalog) với CF (chỉ tập phim có rating) sẽ cho kết quả sai lệch nghiêm trọng (đánh giá thấp CB một cách giả tạo).
 - Đã kiểm định: **TF-IDF tốt hơn CountVectorizer** rõ rệt cho Content-Based (Precision@5: 0.0280 vs 0.0108) — dùng TF-IDF làm chính thức.
+- **Module `.py` trong `src/` (khác notebook)**: notebook luôn chạy từ `notebooks/` nên `../` ổn định, nhưng file `.py` có thể chạy từ bất kỳ thư mục nào tùy người dùng `cd` tới đâu → đường dẫn tương đối `../` không đáng tin cậy. Luôn xác định đường dẫn bằng `os.path.dirname(os.path.abspath(__file__))` rồi suy ngược lên `PROJECT_ROOT`.
+- **SQLite: sắp xếp theo "gần đây nhất" không nên dùng cột timestamp** nếu nhiều thao tác có thể diễn ra trong cùng 1 giây (`CURRENT_TIMESTAMP` của SQLite chỉ phân giải tới cấp giây) — dùng `ORDER BY id DESC` (autoincrement) đáng tin cậy hơn.
 
 ## 7. Chạy ứng dụng Streamlit (khi đã hoàn thành Giai đoạn 7)
 

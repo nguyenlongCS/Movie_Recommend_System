@@ -223,9 +223,37 @@ CF có độ phủ catalog thấp nhất — hiện tượng **popularity bias**
 
 **Chốt dùng TF-IDF** làm vectorizer chính thức cho Content-Based/Hybrid. `count_matrix.pkl`/`count_vectorizer.pkl` vẫn giữ lại trong `models_artifacts/` nhưng không dùng trong pipeline chính thức.
 
-## 11. Việc còn lại trước khi vào SQLite & App (Giai đoạn 6-7)
+## 12. Thiết kế SQLite (Giai đoạn 6)
 
-- Cập nhật lại hàm CF ở Giai đoạn 4.2/4.3 dùng **mean-centering (v2)** thay vì bản v1 ban đầu
-- Thiết kế schema SQLite (`users`, `movies`, `watched`, `liked`, `disliked`)
-- Sửa hàm Hybrid để nhận `liked_tmdb_ids` từ SQLite thay vì tự suy ra từ `user_item_matrix` (đã ghi chú từ Giai đoạn 4.3)
-- Xây dựng ứng dụng Streamlit, kết nối logic gợi ý cho 6 mục
+### Quyết định thiết kế
+- **1 user mặc định** (`user_id=1`), không xây đăng nhập — đúng tinh thần đơn giản. Schema vẫn tổng quát (có bảng `users`) để mở rộng sau nếu cần.
+- **Không lưu trùng metadata phim vào SQLite** — chỉ tham chiếu `movie_id` (=`id`/tmdbId), metadata đọc từ `movies_features.csv` qua pandas.
+- **Like và Dislike loại trừ lẫn nhau**: Like 1 phim đang Dislike sẽ tự động gỡ khỏi Dislike, và ngược lại. `Watched` độc lập.
+- **`UNIQUE(user_id, movie_id)`** trên cả 3 bảng hành vi, dùng `INSERT OR REPLACE` để chống trùng lặp khi bấm nút nhiều lần.
+
+### Schema (`src/db/schema.sql`)
+4 bảng: `users`, `watched`, `liked`, `disliked` (cấu trúc giống nhau: `id` tự tăng, `user_id`, `movie_id`, timestamp), có index theo `user_id`.
+
+### Module `src/db/db_utils.py`
+| Hàm | Vai trò |
+|---|---|
+| `mark_watched(user_id, movie_id)` | Nút Play |
+| `like_movie(user_id, movie_id)` | Nút Like (tự gỡ khỏi Dislike nếu có) |
+| `dislike_movie(user_id, movie_id)` | Nút Dislike (tự gỡ khỏi Liked nếu có) |
+| `get_watched_ids`, `get_liked_ids`, `get_disliked_ids` | Đọc từng danh sách |
+| `get_latest_liked_id` | Phim thích gần nhất — seed cho mục "Vì bạn thích ..." |
+| `get_excluded_movie_ids` | Gộp cả 3 danh sách — loại khỏi các mục gợi ý khác |
+
+### Lỗi phát hiện & khắc phục
+1. **Đường dẫn tương đối sai vị trí khi chạy file `.py`** (khác notebook — notebook luôn chạy từ `notebooks/`, còn file `.py` có thể chạy từ bất kỳ thư mục nào tùy người dùng `cd`). Khắc phục: dùng `os.path.dirname(os.path.abspath(__file__))` để xác định `PROJECT_ROOT` ổn định, áp dụng cho mọi module trong `src/` từ nay.
+2. **`ORDER BY liked_at DESC` không đáng tin cậy** khi nhiều thao tác diễn ra trong cùng 1 giây (độ phân giải `CURRENT_TIMESTAMP` của SQLite chỉ tới cấp giây). Khắc phục: dùng `ORDER BY id DESC` (autoincrement luôn tăng, không phụ thuộc độ phân giải thời gian).
+
+### Kiểm định
+Đã test đầy đủ: ghi đúng 3 loại hành vi, ràng buộc loại trừ Like↔Dislike hoạt động chính xác, không nhân đôi khi bấm lại nút cũ, thứ tự "gần đây nhất" chính xác sau khi sửa lỗi.
+
+## 13. Việc còn lại trước khi vào App (Giai đoạn 7)
+
+- Cập nhật lại hàm CF dùng **mean-centering (v2)** thay vì bản v1 ban đầu (đã ghi chú từ Giai đoạn 5)
+- Sửa hàm Hybrid để nhận `liked_tmdb_ids` từ `db_utils.get_liked_ids()` thay vì tự suy ra từ `user_item_matrix` (đã ghi chú từ Giai đoạn 4.3)
+- Dùng TF-IDF (không dùng CountVectorizer) cho Content-Based/Hybrid
+- Xây dựng ứng dụng Streamlit, kết nối logic gợi ý cho 6 mục, dùng `get_excluded_movie_ids` để lọc phim đã tương tác khỏi gợi ý mới

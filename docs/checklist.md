@@ -1,6 +1,6 @@
 # Checklist — Movie Recommender System
 
-Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 5 — Evaluation**
+Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 6 — SQLite & lưu hành vi người dùng**
 
 ---
 
@@ -106,9 +106,15 @@ Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 5 — Evaluation**
 
 ## Giai đoạn 6 — SQLite & lưu hành vi người dùng
 
-- [ ] Thiết kế schema (`users`, `movies`, `watched`, `liked`, `disliked`)
-- [ ] Logic cập nhật: Play → `watched`, Like → `liked`, Dislike → `disliked`
-- [ ] Logic truy vấn phục vụ từng mục gợi ý
+- [x] Quyết định thiết kế: 1 user mặc định (không có đăng nhập), không lưu trùng metadata phim vào SQLite (chỉ tham chiếu `movie_id`), Like/Dislike loại trừ lẫn nhau, `UNIQUE(user_id, movie_id)` chống trùng lặp
+- [x] Thiết kế schema (`src/db/schema.sql`): `users`, `watched`, `liked`, `disliked` + index theo `user_id`
+- [x] Phát hiện & sửa lỗi đường dẫn tương đối khi chạy file `.py` (khác notebook) — chuyển sang `os.path.dirname(os.path.abspath(__file__))` để xác định `PROJECT_ROOT` ổn định bất kể chạy từ đâu
+- [x] Xây `src/db/db_utils.py`: `mark_watched`, `like_movie`, `dislike_movie`, `get_watched_ids`, `get_liked_ids`, `get_disliked_ids`, `get_latest_liked_id`, `get_excluded_movie_ids`
+- [x] Kiểm định đầy đủ luồng nghiệp vụ (`test_db_utils.py`):
+  - Ghi Watched/Liked/Disliked đúng
+  - Ràng buộc loại trừ Like↔Dislike hoạt động đúng
+  - Chống trùng lặp khi bấm lại nút cũ (`INSERT OR REPLACE`)
+  - Phát hiện & sửa lỗi sắp xếp "gần đây nhất": `CURRENT_TIMESTAMP` cấp giây không đủ phân giải khi thao tác nhanh → đổi sang `ORDER BY id DESC` (đáng tin cậy hơn)
 
 ## Giai đoạn 7 — Ứng dụng Streamlit
 
