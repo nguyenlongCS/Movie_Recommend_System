@@ -4,7 +4,7 @@ Hệ thống gợi ý phim đơn giản, tập trung vào quy trình **Data Mini
 
 ## Trạng thái hiện tại
 
-✅ Data Cleaning · ✅ EDA · ✅ Feature Engineering · ✅ Modeling · ✅ Evaluation · ✅ SQLite · ⏳ Streamlit App (tiếp theo)
+✅ Data Cleaning · ✅ EDA · ✅ Feature Engineering · ✅ Modeling · ✅ Evaluation · ✅ SQLite · ✅ Streamlit App · ⏳ Hoàn thiện (tiếp theo)
 
 Xem chi tiết tiến độ tại [`docs/checklist.md`](docs/checklist.md) và kế hoạch tổng thể tại [`docs/roadmap.md`](docs/roadmap.md).
 
@@ -34,7 +34,11 @@ Xem hướng dẫn cài đặt và chạy chi tiết tại [`docs/setup.md`](doc
 pip install pandas numpy scikit-learn nltk streamlit
 ```
 
-Đặt dataset vào `data/raw/`, sau đó chạy lần lượt các notebook trong `notebooks/` theo đúng thứ tự đánh số.
+Đặt dataset vào `data/raw/`, sau đó chạy lần lượt các notebook trong `notebooks/` theo đúng thứ tự đánh số. Sau khi có đủ artifact (`models_artifacts/`) và database (`database/app.db`), chạy ứng dụng từ thư mục gốc:
+
+```bash
+streamlit run app/main.py
+```
 
 ## Cấu trúc project
 
@@ -43,8 +47,13 @@ movie-recommender/
 ├── data/{raw,interim,processed}/
 ├── notebooks/              # 01_data_cleaning → 07_evaluation
 ├── notebooks_export/       # export từ (.ipynb) sang HTML, PDF,...
-├── src/                    # Code module hoá 
+├── src/                    # Code module hoá
+│   ├── db/                 # schema.sql, db_utils.py (SQLite)
+│   └── recommender.py      # Class MovieRecommender (CB/CF/Hybrid hợp nhất)
 ├── app/                    # Ứng dụng Streamlit
+│   ├── main.py              # Trang chính
+│   ├── pages/                # Trang phụ (VD: Toàn bộ phim)
+│   └── components/           # movie_card.py
 ├── models_artifacts/       # Model/vectorizer đã lưu (.pkl)
 ├── database/               # SQLite (app.db)
 ├── reports/figures/        # Biểu đồ (chưa phát triển)
@@ -56,6 +65,6 @@ movie-recommender/
 | File | Nội dung |
 |---|---|
 | [`docs/checklist.md`](docs/checklist.md) | Việc đã/chưa làm, cập nhật theo từng bước |
-| [`docs/dataset.md`](docs/dataset.md) | Mô tả dataset, các vấn đề dữ liệu, kết quả EDA, Feature Engineering, Modeling & Evaluation |
+| [`docs/dataset.md`](docs/dataset.md) | Mô tả dataset, các vấn đề dữ liệu, kết quả EDA, Feature Engineering, Modeling, Evaluation, SQLite & App |
 | [`docs/roadmap.md`](docs/roadmap.md) | Kế hoạch thực hiện theo từng giai đoạn |
 | [`docs/setup.md`](docs/setup.md) | Hướng dẫn cài đặt, thứ tự chạy notebook, lưu ý kỹ thuật |

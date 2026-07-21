@@ -73,10 +73,24 @@ Chạy tuần tự theo đúng thứ tự (mỗi notebook đọc output đã lư
 - Đã kiểm định: **TF-IDF tốt hơn CountVectorizer** rõ rệt cho Content-Based (Precision@5: 0.0280 vs 0.0108) — dùng TF-IDF làm chính thức.
 - **Module `.py` trong `src/` (khác notebook)**: notebook luôn chạy từ `notebooks/` nên `../` ổn định, nhưng file `.py` có thể chạy từ bất kỳ thư mục nào tùy người dùng `cd` tới đâu → đường dẫn tương đối `../` không đáng tin cậy. Luôn xác định đường dẫn bằng `os.path.dirname(os.path.abspath(__file__))` rồi suy ngược lên `PROJECT_ROOT`.
 - **SQLite: sắp xếp theo "gần đây nhất" không nên dùng cột timestamp** nếu nhiều thao tác có thể diễn ra trong cùng 1 giây (`CURRENT_TIMESTAMP` của SQLite chỉ phân giải tới cấp giây) — dùng `ORDER BY id DESC` (autoincrement) đáng tin cậy hơn.
+- **Streamlit + `st.markdown(unsafe_allow_html=True)`**: tránh mọi thuộc tính HTML dạng sự kiện inline (`onerror`, `onclick`...) — Streamlit render qua `react-markdown`, các thuộc tính này dễ bị hiểu nhầm thành React event prop và gây lỗi (`Minified React error #231`). Xử lý fallback hoàn toàn ở phía Python thay vì JS inline.
+- **Streamlit + HTML nhiều dòng**: luôn nối HTML thành 1 dòng duy nhất trước khi truyền vào `st.markdown`. Dòng trống ở giữa khối HTML (VD do f-string điều kiện rỗng) có thể khiến Markdown parser ngắt khối HTML giữa chừng, phần còn lại bị hiển thị thành text thô.
+- **Poster/ảnh trong thẻ UI**: dùng CSS `background-image` + `aspect-ratio` cố định trên `<div>` thay vì thẻ `<img>` — tránh layout co lại bất thường khi ảnh load lỗi.
+- **Dataset ảnh cũ (TMDb `poster_path` từ 2017)**: một phần đường dẫn ảnh đã bị TMDb gỡ bỏ theo thời gian dù định dạng vẫn hợp lệ. Có thể gọi lại TMDb API (cần API key cá nhân) để refresh có chọn lọc (VD top phim theo `weighted_rating`) thay vì toàn bộ dataset — tiết kiệm thời gian đáng kể.
+- **Streamlit `@st.cache_resource`**: bắt buộc dùng để cache đối tượng nặng (model, ma trận) — nếu không, mỗi lần bấm nút (Streamlit chạy lại toàn bộ script) sẽ load lại từ đầu, chậm và tốn RAM.
+- **Streamlit multipage app**: dùng thư mục `app/pages/` + `st.switch_page()` để chuyển trang thật (có URL riêng), đơn giản hơn nhiều so với tự quản lý bằng `session_state`.
 
-## 7. Chạy ứng dụng Streamlit (khi đã hoàn thành Giai đoạn 7)
+## 7. Chạy ứng dụng Streamlit
+
+Chạy từ **thư mục gốc project** (không phải từ `app/`) — cần thiết để `sys.path` trong `main.py` trỏ đúng tới `src/`:
 
 ```bash
-cd app
-streamlit run main.py
+streamlit run app/main.py
+```
+
+Nếu cần refresh lại poster phim (dữ liệu gốc từ 2017 có nhiều poster đã bị TMDb gỡ bỏ), cần API key TMDb cá nhân (miễn phí, đăng ký tại themoviedb.org), đặt vào biến môi trường trước khi chạy:
+
+```powershell
+$env:TMDB_API_KEY = "your_api_key"
+python src/refresh_posters.py
 ```

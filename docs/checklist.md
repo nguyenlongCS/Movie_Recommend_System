@@ -1,6 +1,6 @@
 # Checklist — Movie Recommender System
 
-Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 6 — SQLite & lưu hành vi người dùng**
+Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 7 — Ứng dụng Streamlit**
 
 ---
 
@@ -118,10 +118,18 @@ Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 6 — SQLite & lư
 
 ## Giai đoạn 7 — Ứng dụng Streamlit
 
-- [ ] Khung giao diện (thanh tìm kiếm + các mục gợi ý)
-- [ ] Component thẻ phim (poster, hover tooltip, nút Play/Like/Dislike)
-- [ ] Kết nối logic gợi ý (CB, CF, Hybrid, ngẫu nhiên có chọn lọc)
-- [ ] Kết nối SQLite
+- [x] `src/recommender.py` — hợp nhất CB/CF/Hybrid chính thức, áp dụng đủ quyết định chốt từ Giai đoạn 5 (CF mean-centered, TF-IDF, `liked_tmdb_ids` nhận từ tham số ngoài)
+  - Phát hiện & sửa lỗi: thiếu `clip(0.5, 5.0)` sau mean-centering khiến `cf_score` vượt thang rating (VD 5.14/5.0)
+- [x] Kiểm định `recommender.py` bằng script test độc lập (8 test case: CB, CB nhiều phim, CF, Hybrid, Hybrid cold-start, top movies, surprise me, exclude_ids)
+- [x] Component thẻ phim (`app/components/movie_card.py`): poster TMDb (`background-image`, không dùng `<img>`), hover tooltip, luôn hiện tên phim (label) kể cả khi poster lỗi
+  - Phát hiện & sửa 3 lỗi: (1) thuộc tính `onerror` inline gây lỗi React #231 do Streamlit render qua react-markdown; (2) `<img>` co lại bất thường khi load lỗi → đổi sang `background-image` với `aspect-ratio` cố định; (3) HTML nhiều dòng bị Markdown parser ngắt giữa chừng (hiện `</div>` thành text) → nối thành 1 dòng duy nhất
+  - Phát hiện lỗi CSS chưa được inject vào trang (quên gọi `st.markdown(CARD_CSS, ...)`) khiến tooltip hiện thường trực
+- [x] Lắp ráp `app/main.py`: thanh tìm kiếm + 6 mục gợi ý (chỉ hiện khi có dữ liệu) + `st.cache_resource` tránh load lại model mỗi lần tương tác
+- [x] Trang "Toàn bộ phim" (`app/pages/all_movies.py`) dùng `st.switch_page` — bảng đơn giản (tên phim, năm), có ô lọc theo tên
+- [x] Refresh poster cho 197/202 phim (top 200 theo weighted_rating + phim demo) qua TMDb API — do dataset gốc (2017) có nhiều `poster_path` đã bị TMDb gỡ bỏ
+- [x] Kiểm thử end-to-end đầy đủ: Play/Like/Dislike phản ánh đúng vào UI, ràng buộc loại trừ, đối chiếu SQLite, thanh tìm kiếm, và trường hợp "sạch" (chưa tương tác — đúng yêu cầu "chỉ hiển thị mục khi có dữ liệu")
+- [ ] *(Giới hạn đã biết, chấp nhận được)* Một phần `poster_path` trong dataset trỏ đến ảnh đã bị TMDb gỡ (dataset thu thập 2017) — đã xử lý UI để không ảnh hưởng trải nghiệm (luôn hiện tên phim)
+- [ ] *(Giới hạn đã biết, chấp nhận được)* Cảnh báo `autocomplete` trên thanh tìm kiếm (Streamlit không cho tùy chỉnh thuộc tính HTML này) — không ảnh hưởng chức năng, bỏ qua
 
 ## Giai đoạn 8 — Hoàn thiện
 

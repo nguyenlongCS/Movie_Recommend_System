@@ -1,6 +1,6 @@
 # Roadmap — Movie Recommender System
 
-Trạng thái hiện tại: **Đã hoàn thành Giai đoạn 1–6 / 8**
+Trạng thái hiện tại: **Đã hoàn thành Giai đoạn 1–7 / 8**
 
 ## Tổng quan các giai đoạn
 
@@ -12,29 +12,23 @@ Trạng thái hiện tại: **Đã hoàn thành Giai đoạn 1–6 / 8**
 | 4 | Modeling | ✅ Hoàn thành | Content-Based, Collaborative Filtering, Hybrid |
 | 5 | Evaluation | ✅ Hoàn thành | RMSE/MAE, Precision@K/Recall@K, Coverage, so sánh vectorizer |
 | 6 | SQLite & lưu hành vi người dùng | ✅ Hoàn thành | Schema, `db_utils.py`, ràng buộc Like/Dislike |
-| 7 | Ứng dụng Streamlit | ⏳ Tiếp theo | Giao diện, thẻ phim, kết nối logic gợi ý |
-| 8 | Hoàn thiện | ⬜ Chưa bắt đầu | Biểu đồ (tương lai), README báo cáo |
+| 7 | Ứng dụng Streamlit | ✅ Hoàn thành | `recommender.py`, thẻ phim, `main.py`, trang toàn bộ phim |
+| 8 | Hoàn thiện | ⏳ Tiếp theo | Biểu đồ (tương lai), README báo cáo |
 
 Chi tiết từng đầu việc: xem `docs/checklist.md`.
 Chi tiết dữ liệu và các quyết định kỹ thuật: xem `docs/dataset.md`.
 
 ---
 
-## Giai đoạn 6 — SQLite (đã hoàn thành)
+## Giai đoạn 7 — Ứng dụng Streamlit (đã hoàn thành)
 
-- Schema: `users`, `watched`, `liked`, `disliked` (`src/db/schema.sql`)
-- Module `src/db/db_utils.py`: Play/Like/Dislike + các hàm đọc lịch sử, ràng buộc Like↔Dislike loại trừ lẫn nhau
-- Phát hiện & sửa 2 lỗi: đường dẫn tương đối sai khi chạy `.py` (khác notebook), sắp xếp "gần đây nhất" sai do độ phân giải timestamp
+- `src/recommender.py`: hợp nhất CB/CF/Hybrid chính thức, áp dụng đủ quyết định chốt từ Giai đoạn 5-6
+- `app/main.py` + `app/pages/all_movies.py` (multipage qua `st.switch_page`) + `app/components/movie_card.py`
+- Refresh poster qua TMDb API cho 197/202 phim quan trọng (dataset gốc có nhiều poster đã bị TMDb gỡ do thu thập từ 2017)
+- Phát hiện & sửa 7 lỗi kỹ thuật (chi tiết mục 14 trong `docs/dataset.md`), đáng chú ý nhất: lỗi React #231 do thuộc tính HTML sự kiện inline xung đột với cách Streamlit render qua react-markdown
+- Kiểm thử end-to-end đầy đủ: Play/Like/Dislike, ràng buộc loại trừ, tìm kiếm, trường hợp "sạch" — tất cả đạt
 
-Chi tiết đầy đủ: xem mục 12 trong `docs/dataset.md`.
-
-## Việc cần mang sang Giai đoạn 7 (quan trọng)
-
-- Dùng **CF v2 (mean-centered)** thay vì bản v1 gốc
-- Dùng **TF-IDF** (không dùng CountVectorizer) cho Content-Based/Hybrid
-- Hàm Hybrid nhận `liked_tmdb_ids` từ `db_utils.get_liked_ids()` thay vì `user_item_matrix`
-- Dùng `get_excluded_movie_ids()` để loại phim đã tương tác khỏi các mục gợi ý mới
-- Mọi module `.py` trong `src/` dùng `os.path.dirname(os.path.abspath(__file__))` để xác định đường dẫn, không dùng `../` tương đối
+Chi tiết đầy đủ: xem mục 14 trong `docs/dataset.md`.
 
 ---
 

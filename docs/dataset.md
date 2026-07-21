@@ -251,9 +251,41 @@ CF có độ phủ catalog thấp nhất — hiện tượng **popularity bias**
 ### Kiểm định
 Đã test đầy đủ: ghi đúng 3 loại hành vi, ràng buộc loại trừ Like↔Dislike hoạt động chính xác, không nhân đôi khi bấm lại nút cũ, thứ tự "gần đây nhất" chính xác sau khi sửa lỗi.
 
-## 13. Việc còn lại trước khi vào App (Giai đoạn 7)
+## 14. Ứng dụng Streamlit (Giai đoạn 7)
 
-- Cập nhật lại hàm CF dùng **mean-centering (v2)** thay vì bản v1 ban đầu (đã ghi chú từ Giai đoạn 5)
-- Sửa hàm Hybrid để nhận `liked_tmdb_ids` từ `db_utils.get_liked_ids()` thay vì tự suy ra từ `user_item_matrix` (đã ghi chú từ Giai đoạn 4.3)
-- Dùng TF-IDF (không dùng CountVectorizer) cho Content-Based/Hybrid
-- Xây dựng ứng dụng Streamlit, kết nối logic gợi ý cho 6 mục, dùng `get_excluded_movie_ids` để lọc phim đã tương tác khỏi gợi ý mới
+### Kiến trúc
+- `src/recommender.py` — class `MovieRecommender`, hợp nhất chính thức CB/CF/Hybrid từ artifact đã lưu (`tfidf_matrix.pkl`, `user_item_matrix.pkl`, `user_knn_model.pkl`...). Áp dụng đủ 3 quyết định chốt từ Giai đoạn 5: **CF mean-centered** (không dùng bản v1 thô), **TF-IDF** (không CountVectorizer), **Hybrid nhận `liked_tmdb_ids` từ tham số ngoài** (không tự suy ra từ `user_item_matrix`).
+- `app/main.py` — trang chính: thanh tìm kiếm + 6 mục gợi ý, dùng `@st.cache_resource` để không load lại model mỗi lần tương tác (~0.7-1.8s/lần nếu không cache).
+- `app/pages/all_movies.py` — trang "Toàn bộ phim" (multipage app qua `st.switch_page`), bảng đơn giản (tên phim, năm phát hành), có ô lọc theo tên.
+- `app/components/movie_card.py` — component thẻ phim tái sử dụng cho mọi mục gợi ý.
+- `APP_USER_ID = 1` cố định (không có đăng nhập), trùng với `user_id=1` sẵn có trong `user_item_matrix` (MovieLens) — cho phép demo được CF/Hybrid ngay từ đầu dù chưa có tương tác Like/Dislike nào.
+
+### Lỗi phát hiện & khắc phục
+
+**1. `cf_score` vượt thang rating hợp lệ** — thiếu bước `clip(0.5, 5.0)` sau khi tính mean-centering khi viết lại từ notebook thành `recommender.py` chính thức (VD: 5.14/5.0). Khắc phục: thêm `.clip(0.5, 5.0)` ở cả `get_cf_recommendations` và phần CF trong `get_hybrid_recommendations`.
+
+**2. Lỗi React #231 (`Uncaught Error: Minified React error #231`)** — do Streamlit render `st.markdown(unsafe_allow_html=True)` qua `react-markdown` (không chèn HTML thẳng vào DOM). Thuộc tính HTML `onerror="this.src='...'"` bị hiểu nhầm thành prop `onError` của React (yêu cầu hàm, không phải chuỗi) → crash. Khắc phục: bỏ hẳn thuộc tính sự kiện inline (`onerror`, `onclick`...), xử lý fallback hoàn toàn ở phía Python.
+
+**3. Poster co lại bất thường khi load lỗi** — dùng thẻ `<img>` khiến layout "sụp" khi ảnh không tải được (trình duyệt không biết kích thước dự kiến để giữ chỗ). Khắc phục: đổi sang `background-image` + `aspect-ratio: 2/3` cố định trên `<div>`, giữ khung ổn định bất kể ảnh load được hay không.
+
+**4. Tooltip hiện thường trực (không chỉ khi hover)** — quên gọi `st.markdown(CARD_CSS, unsafe_allow_html=True)` để inject CSS vào trang, khiến luật `opacity: 0` / `:hover` không được áp dụng.
+
+**5. `</div>` hiện ra thành text thô** — khi HTML nhiều dòng có dòng trống ở giữa (do f-string điều kiện rỗng khi `reason=""`), bộ parser Markdown của Streamlit hiểu nhầm dòng trống là ranh giới kết thúc khối HTML, phần còn lại (thụt lề) bị render thành text/code. Khắc phục: nối toàn bộ HTML thành 1 dòng duy nhất, không dùng f-string đa dòng.
+
+**6. Poster thiếu ở nhiều phim dù `poster_path` không rỗng** — kiểm tra: chỉ 0.8% phim (383/45,429) thiếu `poster_path`, nhưng tỷ lệ hiển thị lỗi cao hơn nhiều → xác định qua HTTP request rằng nhiều `poster_path` hợp lệ về định dạng nhưng ảnh đã bị **TMDb gỡ bỏ** (dataset thu thập từ 2017, ảnh không còn tồn tại — lỗi "file not found" khi truy cập trực tiếp URL). Đây là giới hạn dữ liệu, không phải lỗi code.
+  - Khắc phục 1 phần: gọi lại TMDb API (cần API key cá nhân) để refresh `poster_path` cho 202 phim (top 200 theo `weighted_rating` + 9 phim hay dùng demo) — 197/202 thành công (97.5%), 5 phim lỗi 404 (không còn tồn tại trên TMDb dưới id đó).
+  - Khắc phục UI cho phần còn lại: thêm dải tên phim luôn hiển thị (`movie-label`) ở đáy thẻ, tự ẩn khi hover — đảm bảo dù poster lỗi, người dùng vẫn luôn biết đó là phim gì.
+
+**7. Đường dẫn tương đối trong file `.py`** — kế thừa nguyên tắc đã rút ra từ Giai đoạn 6 (`os.path.dirname(os.path.abspath(__file__))`), áp dụng nhất quán cho `recommender.py`, `main.py`, `all_movies.py`.
+
+### Kiểm thử end-to-end (đã xác nhận đạt)
+- Play/Like/Dislike phản ánh đúng vào UI ngay sau `st.rerun()` (mục gợi ý cập nhật, phim tương tác biến mất khỏi các mục khác qua `exclude_ids`)
+- Ràng buộc loại trừ Like↔Dislike hoạt động đúng trong ngữ cảnh UI thực tế (không chỉ unit test ở Giai đoạn 6)
+- Đối chiếu SQLite trực tiếp khớp đúng với thao tác trên UI
+- Thanh tìm kiếm: tìm đúng, báo đúng khi không có kết quả, không che khuất các mục khác khi xóa từ khóa
+- Trường hợp "sạch" (chưa tương tác gì): đúng yêu cầu ban đầu **"chỉ hiển thị mục khi có dữ liệu"** — "Vì bạn thích...", "Dựa trên phim đã thích" ẩn đi; "Phim dành riêng cho bạn" vẫn hiện nhờ `user_id=1` có sẵn dữ liệu MovieLens
+
+## 15. Việc còn lại trước khi Hoàn thiện (Giai đoạn 8)
+
+- Biểu đồ trực quan (thống kê cá nhân, thể loại yêu thích...) — chưa phát triển, ngoài phạm vi ưu tiên ban đầu
+- Tổng hợp báo cáo Data Mining hoàn chỉnh (có thể tái sử dụng phần lớn nội dung từ `dataset.md`)
