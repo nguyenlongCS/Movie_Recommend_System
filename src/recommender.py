@@ -154,11 +154,27 @@ class MovieRecommender:
         already_rated_ids = set(self.user_item_matrix.columns[self.user_item_matrix.loc[user_id] > 0]) if has_cf else set()
         exclude = set(exclude_ids or []) | already_rated_ids | set(liked_tmdb_ids)
 
-        scores_df = pd.DataFrame({'id': self.candidate_tmdb_ids, 'score': hybrid_scores})
-        scores_df = scores_df[~scores_df['id'].isin(exclude)]
-        top = scores_df.sort_values('score', ascending=False).head(top_n)
+        # scores_df = pd.DataFrame({'id': self.candidate_tmdb_ids, 'score': hybrid_scores})
+        # scores_df = scores_df[~scores_df['id'].isin(exclude)]
+        # top = scores_df.sort_values('score', ascending=False).head(top_n)
 
-        return self._format_result(list(zip(top['id'], top['score'])), score_col='hybrid_score')
+        # return self._format_result(list(zip(top['id'], top['score'])), score_col='hybrid_score')
+
+        scores_df = pd.DataFrame({
+            'id': self.candidate_tmdb_ids,
+            'hybrid_score': hybrid_scores,
+            'cb_score': cb_norm,
+            'cf_score': cf_norm,
+        })
+        scores_df = scores_df[~scores_df['id'].isin(exclude)]
+        top = scores_df.sort_values('hybrid_score', ascending=False).head(top_n)
+
+        result = self.movies[self.movies['id'].isin(top['id'])][
+            ['id', 'title', 'weighted_rating', 'vote_average', 'poster_path', 'genres_display']].merge(top, on='id')
+        result = result.sort_values('hybrid_score', ascending=False).reset_index(drop=True)
+        result.attrs['alpha'] = alpha
+        result.attrs['beta'] = beta
+        return result
 
     # ---------- KHÁC ----------
 
