@@ -48,6 +48,7 @@ def render_movie_list(title, movie_ids, empty_msg, key_prefix):
         with cols[i % n_cols]:
             render_movie_card_with_actions(
                 row, key_prefix=key_prefix,
+                primary_score=row['weighted_rating'] / 10, primary_label="Đánh giá",
                 on_play=lambda mid: (mark_watched(APP_USER_ID, mid), st.rerun()),
                 on_like=lambda mid: (like_movie(APP_USER_ID, mid), st.rerun()),
                 on_dislike=lambda mid: (dislike_movie(APP_USER_ID, mid), st.rerun()),

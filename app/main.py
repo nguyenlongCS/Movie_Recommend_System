@@ -50,6 +50,7 @@ if search_query:
             with cols[i % 5]:
                 render_movie_card_with_actions(
                     row, key_prefix="search",
+                    primary_score=row['weighted_rating'] / 10, primary_label="Đánh giá",
                     on_play=lambda mid: (mark_watched(APP_USER_ID, mid), st.rerun()),
                     on_like=lambda mid: (like_movie(APP_USER_ID, mid), st.rerun()),
                     on_dislike=lambda mid: (dislike_movie(APP_USER_ID, mid), st.rerun()),
@@ -62,7 +63,8 @@ liked_ids = get_liked_ids(APP_USER_ID)
 latest_liked = get_latest_liked_id(APP_USER_ID)
 
 
-def render_section(title, df, method="", reason_fn=None, metrics_fn=None, n_cols=5):
+def render_section(title, df, method="", formula="", reason_fn=None, metrics_fn=None,
+                    primary_score_fn=None, primary_label="", n_cols=5):
     if df is None or df.empty:
         return
     st.subheader(title)
@@ -71,8 +73,10 @@ def render_section(title, df, method="", reason_fn=None, metrics_fn=None, n_cols
         with cols[i % n_cols]:
             reason = reason_fn(row) if reason_fn else ""
             metrics = metrics_fn(row) if metrics_fn else None
+            primary_score = primary_score_fn(row) if primary_score_fn else None
             render_movie_card_with_actions(
-                row, method=method, metrics=metrics, reason=reason,
+                row, method=method, metrics=metrics, formula=formula,
+                primary_score=primary_score, primary_label=primary_label, reason=reason,
                 key_prefix=title.replace(" ", "_"),
                 on_play=lambda mid: (mark_watched(APP_USER_ID, mid), st.rerun()),
                 on_like=lambda mid: (like_movie(APP_USER_ID, mid), st.rerun()),
@@ -86,9 +90,11 @@ hybrid_df = rec.get_hybrid_recommendations(APP_USER_ID, liked_tmdb_ids=liked_ids
 alpha, beta = hybrid_df.attrs.get('alpha', 0), hybrid_df.attrs.get('beta', 0)
 render_section(
     "🎯 Phim dành riêng cho bạn", hybrid_df,
-    method=f"Hybrid (α={alpha:.2f}·Content-Based + β={beta:.2f}·Collaborative)",
+    method="Hybrid (kết hợp Content-Based và Collaborative Filtering)",
+    formula=f"hybrid_score = {alpha:.2f}×Content-Based + {beta:.2f}×Collaborative",
     reason_fn=lambda r: f"Điểm tổng hợp: {r['hybrid_score']:.2f}",
-    metrics_fn=lambda r: {"CB": f"{r['cb_score']:.2f}", "CF": f"{r['cf_score']:.2f}"},
+    metrics_fn=lambda r: {"Content-Based": r['cb_score'], "Collaborative Filtering": r['cf_score']},
+    primary_score_fn=lambda r: r['hybrid_score'], primary_label="Phù hợp",
 )
 
 # ---------- 2. Danh sách phim (10 phim) ----------
@@ -96,7 +102,9 @@ top_df = rec.get_top_movies(top_n=10, exclude_ids=excluded_ids)
 render_section(
     "📋 Danh sách phim", top_df,
     method="Weighted Rating (công thức IMDb)",
+    formula="WR = (v/(v+m))×R + (m/(v+m))×C",
     reason_fn=lambda r: f"Đánh giá: {r['weighted_rating']:.2f}",
+    primary_score_fn=lambda r: r['weighted_rating'] / 10, primary_label="Đánh giá",
     n_cols=5,
 )
 if st.button("Xem toàn bộ phim"):
@@ -110,7 +118,9 @@ if latest_liked is not None:
     render_section(
         f"💡 Vì bạn thích: {liked_title}", similar_df,
         method="Content-Based Filtering (TF-IDF + Cosine Similarity)",
+        formula="similarity = cosine(TF-IDF(phim nguồn), TF-IDF(phim ứng viên))",
         reason_fn=lambda r: f"Độ giống {liked_title}: {r['similarity_score']:.2f}",
+        primary_score_fn=lambda r: r['similarity_score'], primary_label="Giống",
     )
 
 # ---------- 4. Dựa trên phim bạn đã thích ----------
@@ -118,22 +128,26 @@ if len(liked_ids) > 0:
     based_on_liked_df = rec.get_similar_to_liked_list(liked_ids, top_n=5, exclude_ids=excluded_ids)
     render_section(
         "❤️ Dựa trên phim bạn đã thích", based_on_liked_df,
-        method="Content-Based Filtering (TF-IDF, trung bình toàn bộ danh sách đã thích)",
+        method="Content-Based Filtering (TF-IDF, trung bình similarity với toàn bộ danh sách đã thích)",
         reason_fn=lambda r: f"Độ phù hợp: {r['similarity_score']:.2f}",
+        primary_score_fn=lambda r: r['similarity_score'], primary_label="Phù hợp",
     )
 
 # ---------- 5. Người giống bạn đang xem (CF) ----------
 cf_df = rec.get_cf_recommendations(APP_USER_ID, top_n=5, exclude_ids=excluded_ids)
 render_section(
     "👥 Người giống bạn đang xem", cf_df,
-    method="Collaborative Filtering (User-based KNN, mean-centered)",
+    method="Collaborative Filtering (User-based KNN, cosine similarity, mean-centered)",
+    formula="dự đoán = trung bình(bạn) + Σ(sim×lệch(neighbor)) / Σ(sim)",
     reason_fn=lambda r: f"Điểm dự đoán: {r['cf_score']:.1f}/5.0",
+    primary_score_fn=lambda r: (r['cf_score'] - 0.5) / 4.5, primary_label="Dự đoán",
 )
 
 # ---------- 6. Có thể bạn sẽ bất ngờ ----------
 surprise_df = rec.get_surprise_me(top_n=5, exclude_ids=excluded_ids)
 render_section(
     "🎲 Có thể bạn sẽ bất ngờ", surprise_df,
-    method="Ngẫu nhiên có chọn lọc (top phim theo Weighted Rating)",
+    method="Ngẫu nhiên có chọn lọc (lấy mẫu ngẫu nhiên trong top phim theo Weighted Rating)",
     reason_fn=lambda r: f"Đánh giá: {r['weighted_rating']:.2f}",
+    primary_score_fn=lambda r: r['weighted_rating'] / 10, primary_label="Đánh giá",
 )
