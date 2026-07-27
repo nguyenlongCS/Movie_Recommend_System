@@ -94,7 +94,6 @@ class MovieRecommender:
 
         weighted_dev = deviations.T.dot(sims) / (sims.sum() + 1e-9)
         target_mean = self.user_means.get(user_id, self.global_mean)
-        predicted_scores = target_mean + weighted_dev
         predicted_scores = (target_mean + weighted_dev).clip(0.5, 5.0)
 
         already_rated = self.user_item_matrix.loc[user_id]
@@ -133,7 +132,6 @@ class MovieRecommender:
             deviations = deviations.where(neighbor_ratings > 0, 0)
             weighted_dev = deviations.T.dot(sims) / (sims.sum() + 1e-9)
             target_mean = self.user_means.get(user_id, self.global_mean)
-            cf_full = (target_mean + weighted_dev).reindex(self.candidate_tmdb_ids).fillna(0).values
             cf_full = (target_mean + weighted_dev).clip(0.5, 5.0).reindex(self.candidate_tmdb_ids).fillna(0).values
         else:
             cf_full = np.zeros(len(self.candidate_indices))
@@ -154,12 +152,6 @@ class MovieRecommender:
         already_rated_ids = set(self.user_item_matrix.columns[self.user_item_matrix.loc[user_id] > 0]) if has_cf else set()
         exclude = set(exclude_ids or []) | already_rated_ids | set(liked_tmdb_ids)
 
-        # scores_df = pd.DataFrame({'id': self.candidate_tmdb_ids, 'score': hybrid_scores})
-        # scores_df = scores_df[~scores_df['id'].isin(exclude)]
-        # top = scores_df.sort_values('score', ascending=False).head(top_n)
-
-        # return self._format_result(list(zip(top['id'], top['score'])), score_col='hybrid_score')
-
         scores_df = pd.DataFrame({
             'id': self.candidate_tmdb_ids,
             'hybrid_score': hybrid_scores,
@@ -170,7 +162,7 @@ class MovieRecommender:
         top = scores_df.sort_values('hybrid_score', ascending=False).head(top_n)
 
         result = self.movies[self.movies['id'].isin(top['id'])][
-            ['id', 'title', 'weighted_rating', 'vote_average', 'poster_path', 'genres_display']].merge(top, on='id')
+            ['id', 'title', 'weighted_rating', 'vote_average', 'poster_path', 'genres_display', 'overview', 'release_year']].merge(top, on='id')
         result = result.sort_values('hybrid_score', ascending=False).reset_index(drop=True)
         result.attrs['alpha'] = alpha
         result.attrs['beta'] = beta
@@ -182,14 +174,16 @@ class MovieRecommender:
         """Danh sách phim — theo weighted_rating"""
         df = self.movies[~self.movies['id'].isin(set(exclude_ids or []))]
         top = df.sort_values('weighted_rating', ascending=False).head(top_n)
-        return top[['id', 'title', 'weighted_rating', 'vote_average', 'poster_path']].reset_index(drop=True)
+        return top[['id', 'title', 'weighted_rating', 'vote_average', 'poster_path',
+                    'genres_display', 'overview', 'release_year']].reset_index(drop=True)
 
     def get_surprise_me(self, top_n=5, exclude_ids=None, pool_size=200):
         """Có thể bạn sẽ bất ngờ: chọn ngẫu nhiên có chọn lọc từ top phim theo weighted_rating"""
         df = self.movies[~self.movies['id'].isin(set(exclude_ids or []))]
         pool = df.sort_values('weighted_rating', ascending=False).head(pool_size)
         sample = pool.sample(n=min(top_n, len(pool)))
-        return sample[['id', 'title', 'weighted_rating', 'vote_average', 'poster_path']].reset_index(drop=True)
+        return sample[['id', 'title', 'weighted_rating', 'vote_average', 'poster_path',
+                       'genres_display', 'overview', 'release_year']].reset_index(drop=True)
 
     # ---------- HELPER ----------
 
@@ -199,7 +193,7 @@ class MovieRecommender:
         ids = [x[0] for x in id_score_pairs]
         scores = [x[1] for x in id_score_pairs]
         df = self.movies[self.movies['id'].isin(ids)][
-            ['id', 'title', 'weighted_rating', 'vote_average', 'poster_path']].copy()
+            ['id', 'title', 'weighted_rating', 'vote_average', 'poster_path', 'genres_display', 'overview', 'release_year']].copy()
         score_map = dict(zip(ids, scores))
         df[score_col] = df['id'].map(score_map)
         df = df.sort_values(score_col, ascending=False).reset_index(drop=True)

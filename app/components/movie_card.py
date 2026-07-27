@@ -41,17 +41,15 @@ CARD_CSS = """
 
 
 def _score_color(pct):
-    """pct: 0-100. Trả về màu theo ngưỡng."""
     if pct >= 70:
-        return "#3fb950"  # xanh lá
+        return "#3fb950"
     elif pct >= 40:
-        return "#d29922"  # vàng
+        return "#d29922"
     else:
-        return "#f85149"  # đỏ
+        return "#f85149"
 
 
 def render_movie_card(movie_row, primary_score=None, primary_label="", reason=""):
-    """primary_score: float 0.0-1.0 (đã chuẩn hóa) hoặc None nếu không có điểm để hiện."""
     poster_path = movie_row.get('poster_path')
     poster_url = f"{TMDB_IMAGE_BASE}{poster_path}" if isinstance(poster_path, str) and poster_path.strip() else ""
     title = movie_row.get('title', 'Không rõ tên')
@@ -88,7 +86,6 @@ def render_movie_card(movie_row, primary_score=None, primary_label="", reason=""
 
 
 def render_technical_details(method, metrics, formula=""):
-    """metrics: dict {label: float 0.0-1.0}. Hiện trong expander riêng, không phụ thuộc hover."""
     with st.expander("🔍 Chi tiết kỹ thuật"):
         if method:
             st.caption(f"**Phương pháp:** {method}")
@@ -107,15 +104,15 @@ def render_movie_card_with_actions(movie_row, method="", metrics=None, formula="
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("▶", key=f"{key_prefix}_play_{movie_id}", help="Đánh dấu đã xem"):
+        if st.button("Play", key=f"{key_prefix}_play_{movie_id}", help="Đánh dấu đã xem"):
             if on_play:
                 on_play(movie_id)
     with col2:
-        if st.button("👍", key=f"{key_prefix}_like_{movie_id}", help="Thích"):
+        if st.button("Like", key=f"{key_prefix}_like_{movie_id}", help="Thích"):
             if on_like:
                 on_like(movie_id)
     with col3:
-        if st.button("👎", key=f"{key_prefix}_dislike_{movie_id}", help="Không thích"):
+        if st.button("Dislike", key=f"{key_prefix}_dislike_{movie_id}", help="Không thích"):
             if on_dislike:
                 on_dislike(movie_id)
 

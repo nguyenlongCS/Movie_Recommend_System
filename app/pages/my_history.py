@@ -1,5 +1,6 @@
 import os
 import sys
+import sqlite3
 import streamlit as st
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -8,9 +9,9 @@ sys.path.append(os.path.join(PROJECT_ROOT, 'src'))
 sys.path.append(os.path.join(PROJECT_ROOT, 'src', 'db'))
 
 from recommender import MovieRecommender
-from db_utils import (get_watched_ids, get_liked_ids, get_disliked_ids,
-                       mark_watched, like_movie, dislike_movie)
-from components.movie_card import CARD_CSS, render_movie_card_with_actions
+from db_utils import get_watched_ids, get_liked_ids, get_disliked_ids, DB_PATH
+
+from components.movie_card import CARD_CSS, render_movie_card
 
 st.set_page_config(page_title="Lịch sử của tôi", layout="wide")
 st.markdown(CARD_CSS, unsafe_allow_html=True)
@@ -25,14 +26,31 @@ def load_recommender():
 
 rec = load_recommender()
 
-if st.button("← Quay lại"):
+
+def clear_history(table_name):
+    """Xóa toàn bộ lịch sử của 1 bảng (watched/liked/disliked) cho user hiện tại."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(f"DELETE FROM {table_name} WHERE user_id = ?", (APP_USER_ID,))
+    conn.commit()
+    conn.close()
+
+
+if st.button("Quay lại"):
     st.switch_page("main.py")
 
-st.title("🗂️ Lịch sử của tôi")
+st.title("Lịch sử của tôi")
 
 
-def render_movie_list(title, movie_ids, empty_msg, key_prefix):
-    st.subheader(f"{title} ({len(movie_ids)})")
+def render_movie_list(title, movie_ids, empty_msg, table_name):
+    col_title, col_clear = st.columns([5, 1])
+    with col_title:
+        st.subheader(f"{title} ({len(movie_ids)})")
+    with col_clear:
+        st.write("")
+        if movie_ids and st.button("Xóa lịch sử", key=f"clear_{table_name}", use_container_width=True):
+            clear_history(table_name)
+            st.rerun()
+
     if not movie_ids:
         st.info(empty_msg)
         st.divider()
@@ -46,26 +64,20 @@ def render_movie_list(title, movie_ids, empty_msg, key_prefix):
     cols = st.columns(n_cols)
     for i, (_, row) in enumerate(df.iterrows()):
         with cols[i % n_cols]:
-            render_movie_card_with_actions(
-                row, key_prefix=key_prefix,
-                primary_score=row['weighted_rating'] / 10, primary_label="Đánh giá",
-                on_play=lambda mid: (mark_watched(APP_USER_ID, mid), st.rerun()),
-                on_like=lambda mid: (like_movie(APP_USER_ID, mid), st.rerun()),
-                on_dislike=lambda mid: (dislike_movie(APP_USER_ID, mid), st.rerun()),
-            )
+            render_movie_card(row, primary_score=row.get('vote_average', 0) / 10, primary_label="Đánh giá")
     st.divider()
 
 
-tab1, tab2, tab3 = st.tabs(["▶ Đã xem", "👍 Đã thích", "👎 Đã hạn chế"])
+tab1, tab2, tab3 = st.tabs(["Đã xem", "Đã thích", "Đã hạn chế"])
 
 with tab1:
     render_movie_list("Phim đã xem", get_watched_ids(APP_USER_ID),
-                       "Bạn chưa đánh dấu phim nào là đã xem.", "hist_watched")
+                       "Bạn chưa đánh dấu phim nào là đã xem.", "watched")
 
 with tab2:
     render_movie_list("Phim đã thích", get_liked_ids(APP_USER_ID),
-                       "Bạn chưa thích phim nào.", "hist_liked")
+                       "Bạn chưa thích phim nào.", "liked")
 
 with tab3:
     render_movie_list("Phim hạn chế", get_disliked_ids(APP_USER_ID),
-                       "Bạn chưa hạn chế phim nào.", "hist_disliked")
+                       "Bạn chưa hạn chế phim nào.", "disliked")
