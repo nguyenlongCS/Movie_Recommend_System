@@ -285,6 +285,27 @@ CF có độ phủ catalog thấp nhất — hiện tượng **popularity bias**
 - Thanh tìm kiếm: tìm đúng, báo đúng khi không có kết quả, không che khuất các mục khác khi xóa từ khóa
 - Trường hợp "sạch" (chưa tương tác gì): đúng yêu cầu ban đầu **"chỉ hiển thị mục khi có dữ liệu"** — "Vì bạn thích...", "Dựa trên phim đã thích" ẩn đi; "Phim dành riêng cho bạn" vẫn hiện nhờ `user_id=1` có sẵn dữ liệu MovieLens
 
+### Mở rộng sau kiểm thử end-to-end (theo phản hồi thực tế)
+
+Sau lần kiểm thử đầu, phát hiện 2 thiếu sót so với mô tả ban đầu: chưa có UI quản lý lịch sử, và thông số đánh giá (trọng tâm project) chưa nổi bật trên giao diện. Đã bổ sung:
+
+**Trang "Lịch sử của tôi" (`app/pages/my_history.py`)**
+- 3 tab: Đã xem / Đã thích / Đã hạn chế, mỗi tab có nút "Xóa lịch sử" riêng
+- **Quyết định thiết kế (chủ ý):** không có nút Play/Like/Dislike ở trang này — chỉ để xem lại, tránh bấm nhầm đổi trạng thái khi đang duyệt lịch sử. Khác với các mục gợi ý ở trang chính (vẫn giữ đủ 3 nút).
+
+**Thông số đánh giá nổi bật hơn trên thẻ phim**
+- Thanh điểm màu theo ngưỡng (xanh ≥70%, vàng 40-70%, đỏ <40%) hiện trực tiếp trên tooltip hover, format theo % thay vì số thập phân thô (dễ hiểu hơn với người dùng phổ thông)
+- Expander riêng **"🔍 Chi tiết kỹ thuật"** dưới mỗi thẻ (không phụ thuộc hover, luôn bấm được): hiện tên phương pháp, công thức, và điểm từng thành phần — VD mục Hybrid hiện riêng điểm Content-Based và điểm Collaborative Filtering, không chỉ điểm gộp cuối cùng. Tách lớp thông tin: tooltip hover (gọn, nhanh) và expander (đầy đủ, đúng trọng tâm Data Mining của project).
+
+**Bổ sung cột `overview`**
+`movies_features.csv` từ Bước 3 chỉ lưu `soup` (đã qua xử lý cho vector hóa), không lưu `overview` gốc dạng đọc được. Khi cần hiển thị mô tả nội dung phim trong modal chi tiết, phát hiện cột này rỗng — bổ sung bằng script `src/add_overview.py`, merge lại từ `movies_clean.csv`.
+
+**Mở rộng trang "Toàn bộ phim"**: thêm bộ lọc theo thể loại (`st.multiselect`), thêm cột đánh giá/độ phổ biến/số lượt đánh giá.
+
+**Lỗi phát hiện thêm — hàm backend thiếu cột dù dữ liệu nguồn đầy đủ**: sau khi bổ sung `overview`/`release_year` vào `movies_features.csv`, một số nơi trong UI vẫn hiện thiếu thông tin — nguyên nhân là các hàm trong `recommender.py` (`_format_result`, `get_top_movies`, `get_surprise_me`, phần trả kết quả của `get_hybrid_recommendations`) đã chọn sẵn danh sách cột cố định từ trước khi các cột mới được thêm vào nguồn dữ liệu. Khắc phục: rà soát và bổ sung cột mới vào toàn bộ các điểm chọn cột cứng, không chỉ sửa ở nguồn dữ liệu. Đây là bài học tổng quát: khi thêm cột dữ liệu mới, cần rà soát mọi vị trí `df[['col1', 'col2', ...]]` trong toàn bộ codebase.
+
+**Dọn code**: xóa 2 dòng gán biến bị đè ngay bởi dòng `.clip()` phía sau (`get_cf_recommendations`, `get_hybrid_recommendations`) và các dòng comment code cũ còn sót từ lúc refactor — đã xác nhận không ảnh hưởng hành vi/logic trước khi xóa.
+
 ## 15. Việc còn lại trước khi Hoàn thiện (Giai đoạn 8)
 
 - Biểu đồ trực quan (thống kê cá nhân, thể loại yêu thích...) — chưa phát triển, ngoài phạm vi ưu tiên ban đầu

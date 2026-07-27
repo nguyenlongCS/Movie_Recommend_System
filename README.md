@@ -11,12 +11,13 @@ Xem chi tiết tiến độ tại [`docs/checklist.md`](docs/checklist.md) và k
 ## Tính năng chính
 
 - **Phim dành riêng cho bạn** — gợi ý bằng mô hình Hybrid
-- **Danh sách phim** — hiển thị 10 phim, có nút Toàn bộ phim
+- **Danh sách phim** — hiển thị 10 phim, có nút Toàn bộ phim (có bộ lọc theo thể loại)
 - **Vì bạn thích ...** — gợi ý phim tương tự một phim đã thích (Content-Based)
 - **Dựa trên phim bạn đã thích** — gợi ý từ toàn bộ danh sách phim đã thích
 - **Người giống bạn đang xem** — gợi ý bằng Collaborative Filtering
 - **Có thể bạn sẽ bất ngờ** — gợi ý ngẫu nhiên có chọn lọc (dựa trên Weighted Rating)
-- Quản lý lịch sử: **Phim đã xem**, **Phim đã thích**, **Phim hạn chế**
+- Mỗi thẻ phim hiện **thanh điểm đánh giá** (theo %) và mục **"Chi tiết kỹ thuật"** riêng (phương pháp, công thức, điểm từng thành phần) — đúng trọng tâm Data Mining của project
+- Trang **"Lịch sử của tôi"**: 3 tab Phim đã xem / Đã thích / Hạn chế, có thể xóa lịch sử theo từng loại
 
 ## Dataset
 
@@ -49,10 +50,12 @@ movie-recommender/
 ├── notebooks_export/       # export từ (.ipynb) sang HTML, PDF,...
 ├── src/                    # Code module hoá
 │   ├── db/                 # schema.sql, db_utils.py (SQLite)
-│   └── recommender.py      # Class MovieRecommender (CB/CF/Hybrid hợp nhất)
+│   ├── recommender.py      # Class MovieRecommender (CB/CF/Hybrid hợp nhất)
+│   ├── add_overview.py     # Bổ sung cột overview vào movies_features.csv
+│   └── refresh_posters.py  # Refresh poster_path có chọn lọc qua TMDb API
 ├── app/                    # Ứng dụng Streamlit
 │   ├── main.py              # Trang chính
-│   ├── pages/                # Trang phụ (VD: Toàn bộ phim)
+│   ├── pages/                # Trang phụ (Toàn bộ phim, Lịch sử của tôi)
 │   └── components/           # movie_card.py
 ├── models_artifacts/       # Model/vectorizer đã lưu (.pkl)
 ├── database/               # SQLite (app.db)

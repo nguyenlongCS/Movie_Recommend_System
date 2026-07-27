@@ -79,6 +79,7 @@ Chạy tuần tự theo đúng thứ tự (mỗi notebook đọc output đã lư
 - **Dataset ảnh cũ (TMDb `poster_path` từ 2017)**: một phần đường dẫn ảnh đã bị TMDb gỡ bỏ theo thời gian dù định dạng vẫn hợp lệ. Có thể gọi lại TMDb API (cần API key cá nhân) để refresh có chọn lọc (VD top phim theo `weighted_rating`) thay vì toàn bộ dataset — tiết kiệm thời gian đáng kể.
 - **Streamlit `@st.cache_resource`**: bắt buộc dùng để cache đối tượng nặng (model, ma trận) — nếu không, mỗi lần bấm nút (Streamlit chạy lại toàn bộ script) sẽ load lại từ đầu, chậm và tốn RAM.
 - **Streamlit multipage app**: dùng thư mục `app/pages/` + `st.switch_page()` để chuyển trang thật (có URL riêng), đơn giản hơn nhiều so với tự quản lý bằng `session_state`.
+- **Khi thêm cột dữ liệu mới vào file nguồn** (VD thêm `overview` vào `movies_features.csv`): rà soát lại toàn bộ các hàm có chọn lọc cột cố định (`df[['col1', 'col2', ...]]`) trong codebase — nếu không, dữ liệu mới tồn tại trong file nhưng vẫn "biến mất" ở những nơi gọi qua các hàm đó, gây hiện tượng khó debug (đúng ở chỗ này, thiếu ở chỗ khác).
 
 ## 7. Chạy ứng dụng Streamlit
 

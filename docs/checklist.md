@@ -1,6 +1,6 @@
 # Checklist — Movie Recommender System
 
-Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 7 — Ứng dụng Streamlit**
+Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 7 — Ứng dụng Streamlit** (bao gồm mở rộng: trang Lịch sử, tooltip chi tiết kỹ thuật, bộ lọc thể loại)
 
 ---
 
@@ -128,6 +128,15 @@ Cập nhật lần cuối: sau khi hoàn tất **Giai đoạn 7 — Ứng dụng
 - [x] Trang "Toàn bộ phim" (`app/pages/all_movies.py`) dùng `st.switch_page` — bảng đơn giản (tên phim, năm), có ô lọc theo tên
 - [x] Refresh poster cho 197/202 phim (top 200 theo weighted_rating + phim demo) qua TMDb API — do dataset gốc (2017) có nhiều `poster_path` đã bị TMDb gỡ bỏ
 - [x] Kiểm thử end-to-end đầy đủ: Play/Like/Dislike phản ánh đúng vào UI, ràng buộc loại trừ, đối chiếu SQLite, thanh tìm kiếm, và trường hợp "sạch" (chưa tương tác — đúng yêu cầu "chỉ hiển thị mục khi có dữ liệu")
+- [x] Trang "Lịch sử của tôi" (`app/pages/my_history.py`): 3 tab Đã xem/Đã thích/Đã hạn chế, mỗi tab có nút "Xóa lịch sử" riêng
+  - Quyết định thiết kế (chủ ý): **không** có nút Play/Like/Dislike ở trang này — chỉ để xem lại, tránh bấm nhầm đổi trạng thái khi đang duyệt lịch sử
+- [x] Mở rộng tooltip + thông số đánh giá theo phản hồi thực tế (giao diện ban đầu chưa làm nổi bật được các chỉ số — điểm quan trọng nhất của project):
+  - Thanh điểm màu theo ngưỡng (xanh ≥70%, vàng 40-70%, đỏ <40%) + hiển thị theo % thay vì số thập phân thô, hiện trực tiếp trên tooltip hover
+  - Expander "🔍 Chi tiết kỹ thuật" riêng dưới mỗi thẻ phim: tên phương pháp (CB/CF/Hybrid/Weighted Rating), công thức, và điểm từng thành phần (VD Hybrid hiện riêng điểm CB và điểm CF, không chỉ điểm gộp)
+- [x] Bổ sung cột `overview` vào `movies_features.csv` (script `src/add_overview.py`) — cột này chưa có từ Bước 3, cần merge lại từ `movies_clean.csv`; dùng để hiển thị mô tả nội dung phim trong modal chi tiết
+- [x] Mở rộng trang "Toàn bộ phim": thêm bộ lọc theo thể loại (`st.multiselect`), thêm cột đánh giá/độ phổ biến/số lượt đánh giá
+- [x] Rà soát & bổ sung cột (`overview`, `release_year`) vào toàn bộ điểm chọn cột cứng trong `recommender.py` (`_format_result`, `get_top_movies`, `get_surprise_me`, `get_hybrid_recommendations`) — phát hiện lỗi "có lúc thiếu dữ liệu, có lúc không" do hàm backend chọn sẵn danh sách cột cố định trước khi cột mới được thêm vào nguồn dữ liệu
+- [x] Dọn code thừa trong `recommender.py`: xóa 2 dòng gán biến bị đè ngay bởi dòng `.clip()` phía sau (`get_cf_recommendations`, `get_hybrid_recommendations`), xóa comment code cũ còn sót lại từ lúc refactor — xác nhận không ảnh hưởng hành vi/logic
 - [ ] *(Giới hạn đã biết, chấp nhận được)* Một phần `poster_path` trong dataset trỏ đến ảnh đã bị TMDb gỡ (dataset thu thập 2017) — đã xử lý UI để không ảnh hưởng trải nghiệm (luôn hiện tên phim)
 - [ ] *(Giới hạn đã biết, chấp nhận được)* Cảnh báo `autocomplete` trên thanh tìm kiếm (Streamlit không cho tùy chỉnh thuộc tính HTML này) — không ảnh hưởng chức năng, bỏ qua
 
