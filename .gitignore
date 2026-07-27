@@ -1,8 +1,24 @@
-# Dataset
-data/
+# Dữ liệu gốc và trung gian — không cần thiết để chạy app,
+# chỉ cần khi phát triển lại từ đầu (Bước 1-3)
+data/raw/
+data/interim/
+data/processed/movies_clean.csv
+data/processed/ratings_clean.csv
+
+# Notebook export
+notebooks_export/
 
 # Python
 __pycache__/
+*.pyc
 .ipynb_checkpoints/
 
+# Virtual environment
+venv/
+.venv/
+
+# Editor
 .vscode/
+
+# Secrets (nếu sau này dùng)
+.streamlit/secrets.toml
